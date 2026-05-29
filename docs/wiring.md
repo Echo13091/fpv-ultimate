@@ -32,29 +32,28 @@ The Raspberry Pi GPIO pins should provide signal only.
 
 Use a buck converter or BEC to power servos/accessories.
 
-TEXT DIAGRAM:
+    Battery +  ---> Buck IN+
+    Battery -  ---> Buck IN-
 
-Battery +  ---> Buck IN+
-Battery -  ---> Buck IN-
+    Buck OUT+ ---> Servo/accessory positive rail
+    Buck OUT- ---> Servo/accessory ground rail
+    Pi GND    ---> Servo/accessory ground rail
 
-Buck OUT+ ---> Servo/accessory positive rail
-Buck OUT- ---> Servo/accessory ground rail
-Pi GND    ---> Servo/accessory ground rail
-
-Pi GPIO12 ---> Steering signal
-Pi GPIO13 ---> Throttle/ESC signal
-Pi GPIO6  ---> Transmission signal
-Pi GPIO21 ---> Lights signal
+    Pi GPIO12 ---> Steering signal
+    Pi GPIO13 ---> Throttle/ESC signal
+    Pi GPIO6  ---> Transmission signal
+    Pi GPIO21 ---> Lights signal
 
 ## Buck Converter Wiring
 
 A buck converter steps battery voltage down to a safe voltage for servos.
 
-Battery +  -> Buck IN+
-Battery -  -> Buck IN-
-Buck OUT+  -> Servo/accessory V+
-Buck OUT-  -> Servo/accessory GND
-Buck OUT-  -> Raspberry Pi GND
+    Battery +  ---> Buck IN+
+    Battery -  ---> Buck IN-
+
+    Buck OUT+ ---> Servo/accessory V+
+    Buck OUT- ---> Servo/accessory GND
+    Buck OUT- ---> Raspberry Pi GND
 
 Before connecting servos:
 
@@ -71,17 +70,18 @@ Common ground is required.
 
 Correct wiring:
 
-Pi GPIO signal -> Servo signal wire
-Buck OUT+     -> Servo positive wire
-Buck OUT-     -> Servo ground wire
-Pi GND        -> Buck OUT-
+    Pi GPIO signal ---> Servo signal wire
+    Buck OUT+      ---> Servo positive wire
+    Buck OUT-      ---> Servo ground wire
+    Pi GND         ---> Buck OUT-
 
 Incorrect wiring:
 
-Pi GPIO signal -> Servo signal wire
-Buck OUT+     -> Servo positive wire
-Buck OUT-     -> Servo ground wire
-Pi GND not connected to Buck OUT-
+    Pi GPIO signal ---> Servo signal wire
+    Buck OUT+      ---> Servo positive wire
+    Buck OUT-      ---> Servo ground wire
+
+    Pi GND is NOT connected to Buck OUT-
 
 Without common ground, the servo may jitter, ignore commands, or move unpredictably.
 
@@ -109,10 +109,10 @@ Current app configuration:
 
 Wiring:
 
-GPIO12 -> Steering signal
-Buck + -> Steering servo V+
-Buck - -> Steering servo GND
-Pi GND -> Buck -
+    GPIO12  ---> Steering servo signal
+    Buck +  ---> Steering servo V+
+    Buck -  ---> Steering servo GND
+    Pi GND  ---> Buck -
 
 ## Throttle / ESC
 
@@ -126,9 +126,9 @@ Current app configuration:
 
 Wiring:
 
-GPIO13 -> ESC/throttle signal
-ESC GND -> Common ground
-Pi GND -> Common ground
+    GPIO13  ---> ESC/throttle signal
+    ESC GND ---> Common ground
+    Pi GND  ---> Common ground
 
 Test throttle with wheels off the ground.
 
@@ -144,10 +144,10 @@ Current app configuration:
 
 Wiring:
 
-GPIO6 -> Transmission servo/switch signal
-Buck + -> Transmission servo/switch V+
-Buck - -> Transmission servo/switch GND
-Pi GND -> Buck -
+    GPIO6   ---> Transmission servo/switch signal
+    Buck +  ---> Transmission servo/switch V+
+    Buck -  ---> Transmission servo/switch GND
+    Pi GND  ---> Buck -
 
 ## Lights Accessory
 
@@ -161,39 +161,41 @@ Current app configuration:
 
 Wiring:
 
-GPIO21 -> Lights servo/switch signal
-Buck + -> Lights servo/switch V+
-Buck - -> Lights servo/switch GND
-Pi GND -> Buck -
+    GPIO21  ---> Lights servo/switch signal
+    Buck +  ---> Lights servo/switch V+
+    Buck -  ---> Lights servo/switch GND
+    Pi GND  ---> Buck -
 
 ## Full Wiring Diagram
 
-Raspberry Pi 4:
-
-GPIO12 Pin 32 -> Steering servo signal
-GPIO13 Pin 33 -> ESC/throttle signal
-GPIO6  Pin 31 -> Transmission signal
-GPIO21 Pin 40 -> Lights signal
-GND            -> Buck OUT- / servo ground rail
-
-Power:
-
-Battery + -> Buck IN+
-Battery - -> Buck IN-
-Buck OUT+ -> Servo/accessory V+ rail
-Buck OUT- -> Servo/accessory GND rail
-Pi GND    -> Servo/accessory GND rail
+    +--------------------------+
+    | Raspberry Pi 4           |
+    |                          |
+    | GPIO12 / Pin 32 ---------+----> Steering servo signal
+    | GPIO13 / Pin 33 ---------+----> ESC/throttle signal
+    | GPIO6  / Pin 31 ---------+----> Transmission signal
+    | GPIO21 / Pin 40 ---------+----> Lights signal
+    | GND ---------------------+----------------------+
+    +--------------------------+                      |
+                                                       |
+                                                       |
+    Battery + ---------------> Buck IN+                |
+    Battery - ---------------> Buck IN-                |
+                                                       |
+    Buck OUT+ ---------------> Servo/accessory V+ rail |
+    Buck OUT- ---------------> Servo/accessory GND rail+
+    Pi GND ------------------> Servo/accessory GND rail
 
 ## Bench Test Order
 
 1. Power the Raspberry Pi.
 2. Confirm the app starts.
-3. Confirm /ping works.
+3. Confirm `/ping` works.
 4. Power the buck converter with no servos connected.
 5. Measure buck output voltage.
 6. Connect steering servo.
 7. Confirm steering neutral.
-8. Connect throttle/ESC signal with wheels off ground.
+8. Connect throttle/ESC signal with wheels off the ground.
 9. Confirm throttle neutral.
 10. Confirm failsafe returns throttle and steering to neutral.
 11. Connect accessories one at a time.
@@ -204,17 +206,17 @@ Pi GND    -> Servo/accessory GND rail
 
 Likely causes:
 
-- No common ground
-- Weak buck converter/BEC
-- Incorrect GPIO pin
-- Bad connector
-- Servo drawing too much current
+- No common ground.
+- Weak buck converter/BEC.
+- Incorrect GPIO pin.
+- Bad connector.
+- Servo drawing too much current.
 
 ### Pi reboots when servo moves
 
 Likely cause:
 
-Servo is pulling power from the Pi or shared supply is sagging.
+- Servo is pulling power from the Pi or the shared supply is sagging.
 
 Fix:
 
@@ -226,8 +228,8 @@ Fix:
 
 Check pigpio:
 
-systemctl status pigpiod --no-pager -l
+    systemctl status pigpiod --no-pager -l
 
 Start pigpio:
 
-sudo systemctl enable --now pigpiod
+    sudo systemctl enable --now pigpiod
