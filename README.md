@@ -4,6 +4,12 @@ FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform using a
 
 The project is designed for real hardware: Raspberry Pi camera video, steering/throttle servo control, accessory servo outputs, browser-based control, and failsafe behavior for RC/FPV experiments.
 
+## Dashboard
+
+![FPV Ultimate dashboard](docs/fpv-ultimate-dashboard.jpeg)
+
+The dashboard provides WebRTC video controls, gamepad connection state, failsafe status, FPS/ping feedback, camera settings, model profiles, trims, rates, reversing, and accessory controls.
+
 ## Current Status
 
 This repository started as a working Raspberry Pi project and is being refactored into a cleaner modular structure.
