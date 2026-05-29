@@ -27,6 +27,7 @@ from aiortc import (
 
 from fpv_ultimate.accessories import apply_accessories_from_settings
 from fpv_ultimate.control_math import compute_alpha
+from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
     DEFAULT_SETTINGS,
@@ -125,13 +126,6 @@ last_throttle_angle = 90.0
 # ---------------------------------------------------------------------
 # Camera setup
 # ---------------------------------------------------------------------
-# Keys here MUST match the values used in <select id="video-resolution">
-VIDEO_RESOLUTIONS = {
-    "640x360": (640, 360),
-    "1280x720": (1280, 720),
-    "1920x1080": (1920, 1080),
-}
-
 picam2 = None
 camera_lock = threading.Lock()
 
@@ -177,8 +171,8 @@ def configure_camera_from_settings():
 
         flip = (SETTINGS.get("video_flip", "none") or "none").lower()
 
-    size = VIDEO_RESOLUTIONS.get(res_name, VIDEO_RESOLUTIONS[DEFAULT_SETTINGS["video_resolution"]])
-    fps = max(5, min(fps, 60))
+    size = get_video_size(res_name, DEFAULT_SETTINGS["video_resolution"])
+    fps = clamp_fps(fps)
 
     with camera_lock:
         if picam2 is None:
