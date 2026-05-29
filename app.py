@@ -406,10 +406,25 @@ register_settings_model_routes(
     logger=logger,
 )
 
-# NEW: reboot endpoint triggered by PS button hold
 @app.route("/api/reboot", methods=["POST"])
 def api_reboot():
-    logger.warning("Reboot requested via /api/reboot (PS button hold)")
+    with SETTINGS_LOCK:
+        remote_reboot_enabled = bool(SETTINGS.get("remote_reboot_enabled", False))
+
+    if not remote_reboot_enabled:
+        logger.warning("Remote reboot blocked because remote_reboot_enabled is false")
+        return jsonify({
+            "ok": False,
+            "error": "remote reboot disabled",
+        }), 403
+
+    logger.warning("Reboot requested via /api/reboot")
+    try:
+        control_service.neutralize()
+    except Exception as e:
+        logger.error("Failed to neutralize before reboot: %s", e)
+        return jsonify({"ok": False, "error": "failed to neutralize outputs"}), 500
+
     request_reboot()
     return jsonify({"ok": True, "message": "Rebooting system"})
 
@@ -483,5 +498,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("FPV_PORT", "5000"))
     logger.info("FPV Ultimate WebRTC starting on %s:%d", host, port)
     app.run(host=host, port=port, debug=False)
-
-
