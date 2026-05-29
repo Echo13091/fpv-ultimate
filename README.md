@@ -184,9 +184,11 @@ fpv-ultimate/
 ├── fpv_ultimate/
 │   ├── __init__.py
 │   ├── accessories.py
+│   ├── accessory_routes.py
 │   ├── control_math.py
 │   ├── health.py
 │   ├── pages.py
+│   ├── settings_models_routes.py
 │   ├── storage.py
 │   ├── system_actions.py
 │   └── video_config.py
@@ -206,8 +208,10 @@ fpv-ultimate/
 | `fpv_ultimate/storage.py` | Settings/model JSON loading and saving |
 | `fpv_ultimate/control_math.py` | Control smoothing helper |
 | `fpv_ultimate/accessories.py` | Transmission/lights accessory servo helper |
+| `fpv_ultimate/accessory_routes.py` | Accessory API route registration for lights/transmission state |
 | `fpv_ultimate/health.py` | Health-check response helper |
 | `fpv_ultimate/pages.py` | Dashboard page/template helper |
+| `fpv_ultimate/settings_models_routes.py` | Settings and model-profile API route registration |
 | `fpv_ultimate/system_actions.py` | System-level helpers such as reboot requests |
 | `fpv_ultimate/video_config.py` | Video resolution and FPS helper logic |
 | `static/main.js` | Browser/gamepad control logic |
