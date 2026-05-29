@@ -22,8 +22,9 @@ DEFAULT_SETTINGS = {
     "steer_reverse": False,
     "throttle_reverse": False,
 
-    # failsafe
+    # failsafe / safety gates
     "failsafe_enabled": True,
+    "remote_reboot_enabled": False,
 
     # camera / video
     "video_resolution": "1280x720",
