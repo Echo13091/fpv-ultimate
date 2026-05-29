@@ -29,8 +29,11 @@ from aiortc import (
 # Paths & Flask
 # ---------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SETTINGS_PATH = os.path.join(BASE_DIR, "settings.json")
-MODELS_PATH = os.path.join(BASE_DIR, "models.json")
+DATA_DIR = os.path.join(BASE_DIR, os.environ.get("FPV_DATA_DIR", "data"))
+os.makedirs(DATA_DIR, exist_ok=True)
+
+SETTINGS_PATH = os.path.join(DATA_DIR, "settings.json")
+MODELS_PATH = os.path.join(DATA_DIR, "models.json")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
@@ -763,6 +766,9 @@ signal.signal(signal.SIGTERM, shutdown)
 start_background_threads()
 
 if __name__ == "__main__":
-    logger.info("FPV Ultimate WebRTC starting on 127.0.0.1:5000 (Tailscale Serve HTTPS)")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    host = os.environ.get("FPV_HOST", "127.0.0.1")
+    port = int(os.environ.get("FPV_PORT", "5000"))
+    logger.info("FPV Ultimate WebRTC starting on %s:%d", host, port)
+    app.run(host=host, port=port, debug=False)
+
 

@@ -1,0 +1,6 @@
+flask
+gpiozero
+pigpio
+picamera2
+aiortc
+av
