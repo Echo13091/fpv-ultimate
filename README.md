@@ -1,171 +1,126 @@
 # FPV Ultimate
 
-FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform using a Flask web interface, WebRTC video streaming, Picamera2, GPIOZero servo control, and browser gamepad input.
+FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform with a browser dashboard, WebRTC video, Picamera2 camera support, GPIOZero servo control, model profiles, accessory outputs, and failsafe behavior.
 
-The project is designed for real hardware: Raspberry Pi camera video, steering/throttle servo control, accessory servo outputs, browser-based control, and failsafe behavior for RC/FPV experiments.
+This is a real hardware project. It is designed around live camera video, browser gamepad input, steering/throttle PWM output, accessory control, and safe recovery when control input stops.
 
 ## Dashboard
 
 ![FPV Ultimate dashboard](docs/fpv-ultimate-dashboard.jpeg)
 
-The dashboard provides WebRTC video controls, gamepad connection state, failsafe status, FPS/ping feedback, camera settings, model profiles, trims, rates, reversing, and accessory controls.
+The dashboard provides live video controls, gamepad connection state, failsafe status, FPS/ping feedback, camera settings, model profiles, trims, rates, reversing, transmission control, and lights control.
 
 ## Current Status
 
-This repository started as a working Raspberry Pi project and is being refactored into a cleaner modular structure.
+| Area | Status |
+|---|---|
+| Raspberry Pi runtime | Working under `systemd` |
+| Camera/video | Picamera2 + WebRTC running on Pi hardware |
+| Control output | Steering/throttle PWM through GPIOZero + pigpio |
+| Failsafe | Neutral return when input stops |
+| Settings/models | JSON-backed runtime configuration |
+| Accessories | Transmission and lights PWM outputs |
+| CI | GitHub Actions syntax checks for Python and browser JavaScript |
+| Known controller issue | DS4Windows/HidHide can interfere with browser gamepad input |
 
-Current working state:
-
-- Runs on Raspberry Pi OS
-- Runs under `systemd`
-- Streams Raspberry Pi camera video through WebRTC
-- Uses GPIOZero + pigpio for servo control
-- Supports browser gamepad control
-- Uses JSON files for settings and model profiles
-- Includes failsafe neutral return when control input stops
-- Includes transmission and lights accessory outputs
-
-Known-good tag:
+Known-good tags are kept throughout the refactor history, including:
 
 ```text
 stable-rpi-systemd-baseline
+stable-modular-refactor-1
+stable-modular-refactor-2
+stable-modular-refactor-3
+stable-settings-model-routes
+stable-accessory-routes
+stable-control-failsafe-service
 ```
+
+## System Overview
+
+```mermaid
+flowchart LR
+    Browser[Browser Dashboard<br/>Gamepad + WebRTC UI]
+    Flask[Flask App<br/>Routes + Signaling]
+    Camera[Picamera2 / IMX708]
+    Control[ControlService<br/>Steering + Throttle + Failsafe]
+    GPIO[GPIOZero + pigpio]
+    Servos[Steering / Throttle / Accessories]
+    Storage[JSON Settings<br/>Models + Runtime State]
+
+    Browser -->|HTTP API| Flask
+    Browser -->|WebRTC Offer| Flask
+    Flask --> Camera
+    Flask --> Control
+    Flask --> Storage
+    Control --> GPIO
+    GPIO --> Servos
+```
+
+More detailed architecture diagrams are in [docs/architecture.md](docs/architecture.md).
 
 ## Features
 
-- Low-latency browser video using WebRTC
-- Raspberry Pi Camera Module support through Picamera2/libcamera
-- Steering servo control
-- Throttle/ESC servo control
-- Browser-based PS5 DualSense/gamepad input
-- Adjustable steering and throttle trims
-- Adjustable steering and throttle rates
-- Adjustable steering and throttle smoothing/speed
-- Steering/throttle channel reversing
-- Failsafe neutral return when control input stops
-- Servo-based accessory output for transmission high/low
-- Servo-based accessory output for lights on/off
-- Model profile storage
-- Runtime settings storage
-- systemd deployment support
+### Video
+
+- WebRTC browser video stream
+- Raspberry Pi Camera / IMX708 support through Picamera2/libcamera
+- Runtime video resolution, FPS, color-order, and flip settings
+- Fullscreen dashboard video mode
+- Browser-side recording support
+
+### Control
+
+- Browser Gamepad API input
+- PS5 DualSense/native browser control support
+- Steering servo output
+- Throttle/ESC servo output
+- Adjustable trim, rate, reversing, and smoothing
+- Model profile storage for vehicle presets
+
+### Safety
+
+- Backend failsafe thread
+- Control timeout returns steering/throttle to neutral
+- Runtime failsafe enable/disable setting
+- Bench-test workflow documented before vehicle testing
+
+### Accessories
+
+- Transmission low/high PWM accessory output
+- Lights on/off PWM accessory output
+- Accessory state exposed through API and dashboard controls
 
 ## Hardware Overview
 
-The current build uses:
+Current build target:
 
-- Raspberry Pi 4
-- Raspberry Pi Camera Module / IMX708 camera
-- Servo or ESC for steering/throttle
-- GPIOZero with pigpio backend
-- Browser client for video/control
-- PS5 DualSense or compatible browser gamepad
+| Component | Purpose |
+|---|---|
+| Raspberry Pi 4 | Main FPV/control computer |
+| Raspberry Pi Camera / IMX708 | Live video source |
+| GPIOZero + pigpio | Servo PWM control backend |
+| Steering servo | Steering output |
+| ESC/throttle servo signal | Throttle/brake/reverse output |
+| Accessory PWM outputs | Transmission and lights |
+| PS5 DualSense or compatible gamepad | Browser-based control |
+| Buck converter/BEC | External servo/accessory power |
 
 ## Wiring
 
-Detailed wiring, buck converter, common ground, and PWM signal instructions are available in [docs/wiring.md](docs/wiring.md).
+Detailed wiring, buck converter, PWM signal, and common-ground instructions are available in [docs/wiring.md](docs/wiring.md).
 
 ### GPIO Pin Mapping
 
 | Function | Raspberry Pi GPIO | Physical Pin | Signal Type | Notes |
 |---|---:|---:|---|---|
 | Steering servo | GPIO12 | Pin 32 | PWM servo signal | Main steering output |
-| Throttle / ESC servo | GPIO13 | Pin 33 | PWM servo signal | Throttle / brake / reverse output |
+| Throttle / ESC | GPIO13 | Pin 33 | PWM servo signal | Throttle / brake / reverse output |
 | Transmission accessory | GPIO6 | Pin 31 | PWM servo signal | Low/high toggle output |
 | Lights accessory | GPIO21 | Pin 40 | PWM servo signal | Off/on toggle output |
 | Ground | GND | Pins 6, 9, 14, 20, 25, 30, 34, or 39 | Ground | Must be common with servo/ESC power |
-| Camera | CSI ribbon | Camera connector | CSI camera | IMX708 / Pi camera |
+| Camera | CSI ribbon | Camera connector | CSI camera | Raspberry Pi camera |
 
-### Servo Signal Wiring
-
-Each servo-style output needs:
-
-```text
-Raspberry Pi GPIO signal  -> servo signal wire
-External 5V/6V power      -> servo power wire
-External power ground     -> servo ground wire
-Raspberry Pi ground       -> external power ground
-```
-
-Important: the Raspberry Pi should usually **not** power multiple servos directly from its 5V pin. Use an external BEC/servo power supply for servos and ESCs.
-
-### Common Ground Requirement
-
-The Raspberry Pi and servo/ESC power supply must share ground.
-
-```text
-Pi GND -------------- External servo/BEC GND
-GPIO signal --------- Servo signal
-BEC +5V/+6V --------- Servo V+
-BEC GND ------------- Servo GND
-```
-
-If grounds are not common, the servo signal may behave unpredictably.
-
-## Current Servo Configuration
-
-The app currently creates the servo outputs with these pulse ranges:
-
-### Steering Servo
-
-```text
-GPIO: GPIO12
-Angle range: 0° to 180°
-Pulse width: 500 µs to 2500 µs
-Neutral: 90°
-```
-
-### Throttle / ESC Servo
-
-```text
-GPIO: GPIO13
-Angle range: 0° to 180°
-Pulse width: 500 µs to 2500 µs
-Neutral: 90°
-```
-
-### Transmission Accessory
-
-```text
-GPIO: GPIO6
-Angle range: 0° to 180°
-Pulse width: 1000 µs to 2000 µs
-Default low angle: 0°
-Default high angle: 180°
-```
-
-### Lights Accessory
-
-```text
-GPIO: GPIO21
-Angle range: 0° to 180°
-Pulse width: 1000 µs to 2000 µs
-Default off angle: 0°
-Default on angle: 180°
-```
-
-## Safety Notes
-
-This project controls real moving hardware.
-
-Before testing on a vehicle:
-
-1. Put the vehicle on a stand.
-2. Keep wheels off the ground.
-3. Confirm steering direction.
-4. Confirm throttle neutral.
-5. Confirm failsafe behavior.
-6. Confirm browser disconnect returns throttle to neutral.
-7. Confirm accessory outputs do not bind mechanical parts.
-
-The app includes a failsafe thread that returns steering and throttle to neutral if control input stops.
-
-Current failsafe timeout:
-
-```text
-0.25 seconds
-```
-
-That means if browser/gamepad control stops updating, steering and throttle are returned to neutral.
+Important: do not power multiple servos directly from the Raspberry Pi 5V pin. Use an external BEC or buck converter for servo/accessory power, and tie grounds together.
 
 ## Software Architecture
 
@@ -181,6 +136,10 @@ fpv-ultimate/
 │   ├── models.json
 │   └── settings.json
 ├── docs/
+│   ├── architecture.md
+│   ├── controller-troubleshooting.md
+│   ├── fpv-ultimate-dashboard.jpeg
+│   └── wiring.md
 ├── fpv_ultimate/
 │   ├── __init__.py
 │   ├── accessories.py
@@ -193,6 +152,8 @@ fpv-ultimate/
 │   ├── storage.py
 │   ├── system_actions.py
 │   └── video_config.py
+├── scripts/
+│   └── install_pi.sh
 ├── static/
 │   └── main.js
 ├── systemd/
@@ -201,26 +162,61 @@ fpv-ultimate/
     └── index.html
 ```
 
-### Important Files
+### Backend Modules
 
 | File | Purpose |
 |---|---|
-| `app.py` | Main Flask app, WebRTC camera handling, GPIO startup, routes, lifecycle |
-| `fpv_ultimate/storage.py` | Settings/model JSON loading and saving |
-| `fpv_ultimate/control_math.py` | Control smoothing helper |
+| `app.py` | Flask app assembly, camera/WebRTC setup, service startup/shutdown |
+| `fpv_ultimate/accessories.py` | Transmission/lights servo helper |
+| `fpv_ultimate/accessory_routes.py` | Accessory API route registration |
+| `fpv_ultimate/control_math.py` | Control smoothing and clamp helpers |
 | `fpv_ultimate/control_service.py` | Steering/throttle output state and failsafe behavior |
-| `fpv_ultimate/accessories.py` | Transmission/lights accessory servo helper |
-| `fpv_ultimate/accessory_routes.py` | Accessory API route registration for lights/transmission state |
 | `fpv_ultimate/health.py` | Health-check response helper |
 | `fpv_ultimate/pages.py` | Dashboard page/template helper |
-| `fpv_ultimate/settings_models_routes.py` | Settings and model-profile API route registration |
-| `fpv_ultimate/system_actions.py` | System-level helpers such as reboot requests |
-| `fpv_ultimate/video_config.py` | Video resolution and FPS helper logic |
-| `static/main.js` | Browser/gamepad control logic |
-| `templates/index.html` | Browser UI |
-| `data/settings.json` | Runtime settings |
-| `data/models.json` | Model profiles |
-| `systemd/fpv-ultimate.service.reference` | Reference copy of working systemd config |
+| `fpv_ultimate/settings_models_routes.py` | Settings/model API route registration |
+| `fpv_ultimate/storage.py` | JSON settings/model persistence |
+| `fpv_ultimate/system_actions.py` | System actions such as reboot requests |
+| `fpv_ultimate/video_config.py` | Video resolution and FPS helpers |
+
+### API Overview
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/` | GET | Main browser dashboard |
+| `/ping` | GET | Health check |
+| `/offer` | POST | WebRTC offer/answer negotiation |
+| `/api/control` | POST | Steering/throttle servo command |
+| `/api/transmission` | POST | Set/toggle transmission accessory |
+| `/api/lights` | POST | Set/toggle lights accessory |
+| `/api/accessories` | GET | Read accessory state |
+| `/api/settings` | GET/POST | Read/update runtime settings |
+| `/api/models` | GET | List model profiles |
+| `/api/models/save` | POST | Save model profile |
+| `/api/models/delete` | POST | Delete/reset model profile |
+| `/api/models/rename` | POST | Rename model profile |
+| `/api/reboot` | POST | Reboot Raspberry Pi |
+
+## Control and Failsafe Flow
+
+```mermaid
+flowchart TD
+    Gamepad[Browser Gamepad API]
+    JS[static/main.js<br/>compute steer/throttle degrees]
+    API[/POST /api/control/]
+    ControlService[ControlService.apply_control]
+    Smooth[compute_alpha<br/>smoothing]
+    Servo[GPIOZero AngularServo]
+    Watchdog[Failsafe worker]
+    Neutral[Neutral 90 degrees]
+
+    Gamepad --> JS
+    JS --> API
+    API --> ControlService
+    ControlService --> Smooth
+    Smooth --> Servo
+    Watchdog -->|input stale| Neutral
+    Neutral --> Servo
+```
 
 ## Runtime Data
 
@@ -231,26 +227,11 @@ data/settings.json
 data/models.json
 ```
 
-These are currently committed as starter/default configuration files.
-
-Later, they may be changed to:
-
-```text
-data/settings.example.json
-data/models.example.json
-```
-
-with real runtime files ignored by Git.
+These files currently act as starter/default configuration. If the project is used across multiple vehicles, these can later be converted into `.example.json` files with real runtime files ignored by Git.
 
 ## Environment Variables
 
 Example values are shown in `.env.example`:
-
-```text
-FPV_HOST=127.0.0.1
-FPV_PORT=5000
-FPV_DATA_DIR=data
-```
 
 | Variable | Purpose | Default |
 |---|---|---|
@@ -258,20 +239,24 @@ FPV_DATA_DIR=data
 | `FPV_PORT` | Flask bind port | `5000` |
 | `FPV_DATA_DIR` | Runtime data folder | `data` |
 
-The systemd service may also define audio-related values:
+The systemd reference also preserves audio-related environment variables:
 
 ```text
 FPV_AUDIO_IN
 FPV_AUDIO_OUT
 ```
 
-These are preserved in the service reference, but may not be used by the current app code yet.
+These may be used by future audio features.
 
 ## Installation on Raspberry Pi OS
 
-A repeatable Raspberry Pi setup helper is available at `scripts/install_pi.sh`.
+A repeatable Pi setup helper is available at:
 
-Install system packages:
+```bash
+scripts/install_pi.sh
+```
+
+Manual setup:
 
 ```bash
 sudo apt update
@@ -287,155 +272,136 @@ sudo apt install -y \
   python3-pigpio
 ```
 
-Enable pigpio daemon:
+Enable pigpio:
 
 ```bash
 sudo systemctl enable --now pigpiod
 ```
 
-Clone the repo:
+Clone and set up the app:
 
 ```bash
 cd ~
 git clone git@github.com:Echo13091/fpv-ultimate.git
 cd fpv-ultimate
-```
-
-Create a virtual environment that can see Raspberry Pi system packages:
-
-```bash
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Run Manually
+The `--system-site-packages` flag is important because Raspberry Pi camera packages such as `libcamera` and `picamera2` are commonly installed through Raspberry Pi OS packages.
 
-Stop the systemd service first if it is running, because only one process can own the camera at a time:
+## Running the App
 
-```bash
-sudo systemctl stop fpv-ultimate
-```
+### systemd
 
-Run manually:
-
-```bash
-cd ~/fpv-ultimate
-source .venv/bin/activate
-python app.py
-```
-
-Open:
-
-```text
-http://127.0.0.1:5000
-```
-
-Stop with:
-
-```text
-Ctrl+C
-```
-
-Restart service:
-
-```bash
-sudo systemctl start fpv-ultimate
-```
-
-## systemd Deployment
-
-The live service file is installed at:
+The live service is installed at:
 
 ```text
 /etc/systemd/system/fpv-ultimate.service
 ```
 
-The repo includes a reference copy at:
+A reference copy is stored in:
 
 ```text
 systemd/fpv-ultimate.service.reference
 ```
 
-Current service behavior:
-
-```text
-WorkingDirectory=/home/rc2/fpv-ultimate
-ExecStart=/home/rc2/fpv-ultimate/.venv/bin/python app.py
-Restart=always
-User=rc2
-```
-
-Check status:
-
-```bash
-systemctl status fpv-ultimate --no-pager -l
-```
-
-View logs:
-
-```bash
-sudo journalctl -u fpv-ultimate -n 80 --no-pager -l
-```
-
-Restart:
+Common commands:
 
 ```bash
 sudo systemctl restart fpv-ultimate
+systemctl status fpv-ultimate --no-pager -l
+sudo journalctl -u fpv-ultimate -n 80 --no-pager -l
 ```
 
-## API Overview
+### Manual Run
 
-| Route | Method | Purpose |
-|---|---|---|
-| `/` | GET | Main browser control UI |
-| `/ping` | GET | Health check |
-| `/offer` | POST | WebRTC offer/answer negotiation |
-| `/api/control` | POST | Steering/throttle servo command |
-| `/api/transmission` | POST | Toggle or set transmission accessory |
-| `/api/lights` | POST | Toggle or set lights accessory |
-| `/api/accessories` | GET | Read accessory states |
-| `/api/settings` | GET/POST | Read/update runtime settings |
-| `/api/models` | GET | List model profiles |
-| `/api/models/save` | POST | Save model profile |
-| `/api/models/delete` | POST | Delete/reset model profile |
-| `/api/models/rename` | POST | Rename model profile |
-| `/api/reboot` | POST | Reboot Raspberry Pi |
+Stop the service first because only one process can own the camera at a time:
 
-## WebRTC / Camera Notes
+```bash
+sudo systemctl stop fpv-ultimate
+cd ~/fpv-ultimate
+source .venv/bin/activate
+python app.py
+```
 
-The app uses:
-
-- `Picamera2`
-- `libcamera`
-- `aiortc`
-- `PyAV`
-
-The camera is configured from runtime settings:
+Then open:
 
 ```text
-video_resolution
-video_fps
-video_flip
-video_color_order
+http://127.0.0.1:5000
 ```
 
-Supported resolutions:
+Restart service after manual testing:
+
+```bash
+sudo systemctl start fpv-ultimate
+```
+
+## Testing and CI
+
+GitHub Actions currently runs lightweight syntax checks:
 
 ```text
-640x360
-1280x720
-1920x1080
+python -m py_compile app.py fpv_ultimate/*.py
+node --check static/main.js
 ```
 
-Only one process can access the Pi camera at a time. If manual testing fails with:
+Full runtime tests are done on the Raspberry Pi because camera, GPIO, pigpio, and libcamera are hardware-specific.
+
+Recommended Pi-side smoke checks:
+
+```bash
+python -m py_compile app.py fpv_ultimate/*.py
+curl -s http://127.0.0.1:5000/ping
+curl -s http://127.0.0.1:5000/api/settings | python3 -m json.tool
+curl -s http://127.0.0.1:5000/api/models | python3 -m json.tool
+curl -s http://127.0.0.1:5000/api/accessories | python3 -m json.tool
+curl -s -X POST http://127.0.0.1:5000/api/control \
+  -H "Content-Type: application/json" \
+  -d '{"steer":90,"throttle":90}' | python3 -m json.tool
+```
+
+## Safety Notes
+
+This project controls real moving hardware.
+
+Before bench testing:
+
+1. Put the vehicle on a stand.
+2. Keep wheels off the ground.
+3. Confirm steering direction.
+4. Confirm throttle neutral.
+5. Confirm failsafe behavior.
+6. Confirm browser disconnect returns throttle to neutral.
+7. Confirm accessory outputs do not bind mechanical parts.
+
+Failsafe timeout is currently:
+
+```text
+0.25 seconds
+```
+
+If browser/gamepad control stops updating, steering and throttle return to neutral.
+
+## Troubleshooting
+
+### Controller connected but no steering/throttle
+
+See [docs/controller-troubleshooting.md](docs/controller-troubleshooting.md).
+
+DS4Windows, HidHide, Steam Input, and virtual controller drivers can interfere with browser Gamepad API input. If the dashboard shows a connected controller but steering/throttle stay neutral, disable DS4Windows/HidHide or make sure the browser sees only one clean controller device.
+
+### Camera busy
+
+If manual testing fails with:
 
 ```text
 Device or resource busy
 Pipeline handler in use by another process
 ```
 
-then the systemd service or another camera process is already using the camera.
+then the systemd service or another camera process already owns the camera.
 
 Find camera users:
 
@@ -443,151 +409,22 @@ Find camera users:
 sudo fuser -v /dev/media* /dev/video* 2>/dev/null
 ```
 
-## Development Workflow
-
-Normal update flow on the Pi:
-
-```bash
-cd ~/fpv-ultimate
-git pull
-sudo systemctl restart fpv-ultimate
-sudo journalctl -u fpv-ultimate -n 80 --no-pager -l
-```
-
-Before making changes:
-
-```bash
-git status
-```
-
-After making changes:
-
-```bash
-python -m py_compile app.py fpv_ultimate/*.py
-git diff --stat
-git status
-```
-
-Commit:
-
-```bash
-git add .
-git commit -m "Describe the change"
-```
-
-Test service:
-
-```bash
-sudo systemctl restart fpv-ultimate
-sleep 3
-systemctl status fpv-ultimate --no-pager -l
-sudo journalctl -u fpv-ultimate -n 80 --no-pager -l
-```
-
-Push:
-
-```bash
-git push
-```
-
-## Known Good Rollback
-
-A known-good tag exists:
-
-```text
-stable-rpi-systemd-baseline
-```
-
-To temporarily roll back:
-
-```bash
-cd ~/fpv-ultimate
-git checkout stable-rpi-systemd-baseline
-sudo systemctl restart fpv-ultimate
-```
-
-To return to main:
-
-```bash
-git checkout main
-git pull
-sudo systemctl restart fpv-ultimate
-```
-
-## Refactor Status
-
-Completed:
-
-- Imported working Raspberry Pi project
-- Added GitHub repo
-- Added `.gitignore`
-- Added `.env.example`
-- Added `requirements.txt`
-- Added detailed README
-- Moved runtime JSON into `data/`
-- Added systemd service reference
-- Extracted settings/model storage helpers
-- Extracted control smoothing helper
-- Extracted accessory servo helper
-
-Planned:
-
-- Separate Flask route groups
-- Separate GPIO/servo setup
-- Separate camera/WebRTC lifecycle
-- Add safer startup checks
-- Add better install script
-- Add wiring diagram image
-- Add systemd install script
-- Add optional Tailscale Serve notes
-
-## Troubleshooting
-
-### Camera busy
-
-Error:
-
-```text
-RuntimeError: Failed to acquire camera: Device or resource busy
-```
-
-Cause:
-
-Another process already owns the camera.
-
-Fix:
-
-```bash
-systemctl status fpv-ultimate --no-pager -l
-sudo fuser -v /dev/media* /dev/video* 2>/dev/null
-```
-
-Stop service before manual testing:
-
-```bash
-sudo systemctl stop fpv-ultimate
-```
-
 ### Missing libcamera
 
-Error:
+If you see:
 
 ```text
 ModuleNotFoundError: No module named 'libcamera'
 ```
 
-Cause:
-
-The venv cannot see Raspberry Pi OS camera packages.
-
-Fix:
+install the Raspberry Pi OS camera packages and recreate the venv with system site packages:
 
 ```bash
 sudo apt install -y python3-libcamera python3-picamera2
 python3 -m venv --system-site-packages .venv
 ```
 
-### pigpio / GPIO errors
+### pigpio / GPIO issues
 
 Check pigpio:
 
@@ -601,11 +438,48 @@ Start it:
 sudo systemctl enable --now pigpiod
 ```
 
-### Service logs
+## Development Workflow
+
+Normal update flow on the Pi:
 
 ```bash
-sudo journalctl -u fpv-ultimate -n 100 --no-pager -l
+cd ~/fpv-ultimate
+git pull
+sudo systemctl restart fpv-ultimate
+sudo journalctl -u fpv-ultimate -n 80 --no-pager -l
 ```
+
+Before changes:
+
+```bash
+git status
+```
+
+After changes:
+
+```bash
+python -m py_compile app.py fpv_ultimate/*.py
+git diff --stat
+git status
+```
+
+After testing:
+
+```bash
+git add .
+git commit -m "Describe the change"
+git push
+```
+
+## Roadmap
+
+Potential next improvements:
+
+- Add `scripts/smoke_test.sh` for Pi-side endpoint testing.
+- Extract camera/WebRTC lifecycle into dedicated modules.
+- Split the large browser client (`static/main.js`) into smaller frontend modules.
+- Add deployment/testing docs under `docs/`.
+- Convert runtime JSON files into example templates if multiple vehicle profiles are needed.
 
 ## License
 
