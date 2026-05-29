@@ -1,0 +1,31 @@
+# /etc/systemd/system/fpv-ultimate.service
+[Unit]
+Description=FPV Ultimate
+After=network.target pigpiod.service
+
+[Service]
+Type=simple
+User=rc2
+WorkingDirectory=/home/rc2/fpv-ultimate
+ExecStart=/home/rc2/fpv-ultimate/.venv/bin/python app.py
+Restart=always
+RestartSec=2
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/fpv-ultimate.service.d/override.conf
+[Service]
+Environment=FPV_AUDIO_IN=1
+Environment=FPV_AUDIO_OUT=2
+ExecStartPost=/usr/local/bin/fpv-camera-lock.sh
+
+# /etc/systemd/system/fpv-ultimate.service.d/zz-restart.conf
+[Service]
+Restart=always
+RestartSec=2
+
+# /etc/systemd/system/fpv-ultimate.service.d/zzz-clear-execstartpost.conf
+[Service]
+ExecStartPost=
