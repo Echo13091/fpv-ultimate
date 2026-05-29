@@ -18,9 +18,10 @@ The dashboard provides live video controls, gamepad connection state, failsafe s
 | Camera/video | Picamera2 + WebRTC running on Pi hardware |
 | Control output | Steering/throttle PWM through GPIOZero + pigpio |
 | Failsafe | Neutral return when input stops |
-| Settings/models | JSON-backed runtime configuration |
+| Settings/models | JSON-backed runtime configuration with atomic writes |
 | Accessories | Transmission and lights PWM outputs |
-| CI | GitHub Actions syntax checks for Python and browser JavaScript |
+| CI | Python syntax checks, hardware-free unit tests, and browser JavaScript syntax checks |
+| Pi smoke test | `scripts/smoke_test.sh` validates live endpoints on hardware |
 | Known controller issue | DS4Windows/HidHide can interfere with browser gamepad input |
 
 Known-good tags are kept throughout the refactor history, including:
@@ -81,7 +82,9 @@ More detailed architecture diagrams are in [docs/architecture.md](docs/architect
 
 - Backend failsafe thread
 - Control timeout returns steering/throttle to neutral
+- Thread-safe steering/throttle state updates inside `ControlService`
 - Runtime failsafe enable/disable setting
+- Remote reboot disabled by default through `remote_reboot_enabled`
 - Bench-test workflow documented before vehicle testing
 
 ### Accessories
@@ -153,13 +156,19 @@ fpv-ultimate/
 │   ├── system_actions.py
 │   └── video_config.py
 ├── scripts/
-│   └── install_pi.sh
+│   ├── install_pi.sh
+│   └── smoke_test.sh
 ├── static/
 │   └── main.js
 ├── systemd/
 │   └── fpv-ultimate.service.reference
-└── templates/
-    └── index.html
+├── templates/
+│   └── index.html
+└── tests/
+    ├── test_control_math.py
+    ├── test_control_service.py
+    ├── test_storage.py
+    └── test_video_config.py
 ```
 
 ### Backend Modules
@@ -194,7 +203,7 @@ fpv-ultimate/
 | `/api/models/save` | POST | Save model profile |
 | `/api/models/delete` | POST | Delete/reset model profile |
 | `/api/models/rename` | POST | Rename model profile |
-| `/api/reboot` | POST | Reboot Raspberry Pi |
+| `/api/reboot` | POST | Reboot Raspberry Pi only when `remote_reboot_enabled` is true |
 
 ## Control and Failsafe Flow
 
@@ -227,7 +236,7 @@ data/settings.json
 data/models.json
 ```
 
-These files currently act as starter/default configuration. If the project is used across multiple vehicles, these can later be converted into `.example.json` files with real runtime files ignored by Git.
+These files currently act as starter/default configuration. Runtime saves use atomic temp-file replacement to reduce the chance of corrupted JSON after a power loss or service interruption.
 
 ## Environment Variables
 
@@ -340,27 +349,23 @@ sudo systemctl start fpv-ultimate
 
 ## Testing and CI
 
-GitHub Actions currently runs lightweight syntax checks:
+GitHub Actions currently runs:
 
 ```text
 python -m py_compile app.py fpv_ultimate/*.py
+python -m pytest tests
 node --check static/main.js
 ```
 
 Full runtime tests are done on the Raspberry Pi because camera, GPIO, pigpio, and libcamera are hardware-specific.
 
-Recommended Pi-side smoke checks:
+Recommended Pi-side smoke check:
 
 ```bash
-python -m py_compile app.py fpv_ultimate/*.py
-curl -s http://127.0.0.1:5000/ping
-curl -s http://127.0.0.1:5000/api/settings | python3 -m json.tool
-curl -s http://127.0.0.1:5000/api/models | python3 -m json.tool
-curl -s http://127.0.0.1:5000/api/accessories | python3 -m json.tool
-curl -s -X POST http://127.0.0.1:5000/api/control \
-  -H "Content-Type: application/json" \
-  -d '{"steer":90,"throttle":90}' | python3 -m json.tool
+./scripts/smoke_test.sh
 ```
+
+The smoke test validates syntax, `/ping`, settings, models, accessories, and a neutral `/api/control` command against the running Pi service.
 
 ## Safety Notes
 
@@ -383,6 +388,8 @@ Failsafe timeout is currently:
 ```
 
 If browser/gamepad control stops updating, steering and throttle return to neutral.
+
+Remote reboot is disabled by default. To allow the PS-button reboot path, set `remote_reboot_enabled` to `true` in runtime settings only after confirming the vehicle is safe to stop and reboot remotely.
 
 ## Troubleshooting
 
@@ -459,6 +466,7 @@ After changes:
 
 ```bash
 python -m py_compile app.py fpv_ultimate/*.py
+python -m pytest tests
 git diff --stat
 git status
 ```
@@ -475,11 +483,11 @@ git push
 
 Potential next improvements:
 
-- Add `scripts/smoke_test.sh` for Pi-side endpoint testing.
 - Extract camera/WebRTC lifecycle into dedicated modules.
 - Split the large browser client (`static/main.js`) into smaller frontend modules.
-- Add deployment/testing docs under `docs/`.
+- Add runtime settings validation and normalization before saving.
 - Convert runtime JSON files into example templates if multiple vehicle profiles are needed.
+- Add a short release checklist for known-good Raspberry Pi builds.
 
 ## License
 
