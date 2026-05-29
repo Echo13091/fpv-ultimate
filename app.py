@@ -25,6 +25,15 @@ from aiortc import (
     RTCRtpSender,
 )
 
+from fpv_ultimate.storage import (
+    DEFAULT_MODEL,
+    DEFAULT_SETTINGS,
+    load_models_from_disk as storage_load_models_from_disk,
+    load_settings_from_disk as storage_load_settings_from_disk,
+    save_models_to_disk as storage_save_models_to_disk,
+    save_settings_to_disk as storage_save_settings_to_disk,
+)
+
 # ---------------------------------------------------------------------
 # Paths & Flask
 # ---------------------------------------------------------------------
@@ -55,58 +64,6 @@ logger = logging.getLogger("fpv-ultimate")
 # ---------------------------------------------------------------------
 # Global settings / models
 # ---------------------------------------------------------------------
-DEFAULT_SETTINGS = {
-    # trims (deg added around 90 center)
-    "steer_trim": 0.0,
-    "throttle_trim": 0.0,
-
-    # dual rate (%) 0–100
-    "steer_rate": 100.0,
-    "throttle_rate": 100.0,
-
-    # per-channel response speed (0–100)
-    "steer_speed": 100.0,
-    "throttle_speed": 100.0,
-
-    # channel reversing
-    "steer_reverse": False,
-    "throttle_reverse": False,
-
-    # failsafe
-    "failsafe_enabled": True,
-
-    # camera / video
-    # IMPORTANT: these names match the <select id="video-resolution"> in index.html
-    "video_resolution": "1280x720",   # "640x360" | "1280x720" | "1920x1080"
-    "video_fps": 30,                  # 15 | 30 | 60
-    "video_quality": 70,              # 10–100 (for later encoder tuning)
-    # Color order – how we interpret raw frames when feeding aiortc
-    "video_color_order": "RGB",       # "RGB" | "BGR"
-    "video_flip": "none",          # "none" | "h" | "v" | "hv"
-    # accessories (servo PWM switches)
-    # Transmission: GPIO6 (servo-style PWM)
-    "trans_state": "low",          # "low" | "high"
-    "trans_low_angle": 0.0,
-    "trans_high_angle": 180.0,
-
-    # Lights: GPIO21 (servo-style PWM)
-    "lights_state": "off",         # "off" | "on"
-    "lights_off_angle": 0.0,
-    "lights_on_angle": 180.0,
-}
-
-DEFAULT_MODEL = {
-    "name": "Model 1",
-    "steer_trim": 0.0,
-    "throttle_trim": 0.0,
-    "steer_rate": 100.0,
-    "throttle_rate": 100.0,
-    "steer_speed": 100.0,
-    "throttle_speed": 100.0,
-    "steer_reverse": False,
-    "throttle_reverse": False,
-}
-
 SETTINGS = {}
 SETTINGS_LOCK = threading.Lock()
 
@@ -178,31 +135,12 @@ camera_lock = threading.Lock()
 # Helpers for settings/models
 # ---------------------------------------------------------------------
 def load_settings_from_disk():
-    if not os.path.exists(SETTINGS_PATH):
-        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_SETTINGS, f, indent=2)
-        return dict(DEFAULT_SETTINGS)
-
-    try:
-        with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            raise ValueError("settings.json must contain an object")
-    except Exception as e:
-        logger.error("Failed to read settings.json, using defaults: %s", e)
-        return dict(DEFAULT_SETTINGS)
-
-    merged = dict(DEFAULT_SETTINGS)
-    merged.update(data)
-    return merged
+    return storage_load_settings_from_disk(SETTINGS_PATH)
 
 
 def save_settings_to_disk(settings):
-    tmp = dict(DEFAULT_SETTINGS)
-    tmp.update(settings)
-    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(tmp, f, indent=2)
-    return tmp
+    return storage_save_settings_to_disk(SETTINGS_PATH, settings)
+
 
 # ---------------------------------------------------------------------
 # Accessories helpers (trans + lights)
@@ -230,40 +168,12 @@ def _apply_accessories_from_settings():
         logger.error("Lights servo error (GPIO21): %s", e)
 
 
-
 def load_models_from_disk():
-    if not os.path.exists(MODELS_PATH):
-        data = {"active_index": 0, "models": [dict(DEFAULT_MODEL)]}
-        with open(MODELS_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        return data
-
-    try:
-        with open(MODELS_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            raise ValueError("models.json must contain an object")
-        if "models" not in data:
-            raise ValueError("models key missing")
-    except Exception as e:
-        logger.error("Failed to read models.json, recreating: %s", e)
-        data = {"active_index": 0, "models": [dict(DEFAULT_MODEL)]}
-        with open(MODELS_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        return data
-
-    models = data.get("models") or []
-    if not models:
-        models = [dict(DEFAULT_MODEL)]
-    data["models"] = models
-    if "active_index" not in data:
-        data["active_index"] = 0
-    return data
+    return storage_load_models_from_disk(MODELS_PATH)
 
 
 def save_models_to_disk(data):
-    with open(MODELS_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    return storage_save_models_to_disk(MODELS_PATH, data)
 
 
 def compute_alpha(speed_percent: float) -> float:
