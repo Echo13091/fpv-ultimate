@@ -7,7 +7,6 @@ import asyncio
 import threading
 import logging
 import signal
-import subprocess  # reboot
 
 from flask import Flask, render_template, request, jsonify
 
@@ -28,6 +27,7 @@ from aiortc import (
 from fpv_ultimate.accessories import apply_accessories_from_settings
 from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
+from fpv_ultimate.system_actions import request_reboot
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
     DEFAULT_SETTINGS,
@@ -564,14 +564,7 @@ def api_models_rename():
 @app.route("/api/reboot", methods=["POST"])
 def api_reboot():
     logger.warning("Reboot requested via /api/reboot (PS button hold)")
-
-    def _do_reboot():
-        try:
-            subprocess.Popen(["sudo", "reboot", "now"])
-        except Exception as e:
-            logger.error("Reboot command failed: %s", e)
-
-    threading.Thread(target=_do_reboot, daemon=True).start()
+    request_reboot()
     return jsonify({"ok": True, "message": "Rebooting system"})
 
 # ---------------------------------------------------------------------
