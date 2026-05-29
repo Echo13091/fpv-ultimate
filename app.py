@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import time
 import json
 import asyncio
 import threading
@@ -25,6 +24,7 @@ from aiortc import (
 )
 
 from fpv_ultimate.accessories import apply_accessories_from_settings
+from fpv_ultimate.control_service import ControlService
 from fpv_ultimate.accessory_routes import register_accessory_routes
 from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
@@ -132,9 +132,12 @@ lights_servo = AngularServo(
 steer_servo.angle = 90
 throttle_servo.angle = 90
 
-last_control_time = time.time()
-last_steer_angle = 90.0
-last_throttle_angle = 90.0
+control_service = ControlService(
+    steer_servo=steer_servo,
+    throttle_servo=throttle_servo,
+    neutral_angle=90.0,
+    failsafe_timeout=0.25,
+)
 
 # ---------------------------------------------------------------------
 # Camera setup
@@ -307,28 +310,19 @@ def run_coro_in_webrtc_loop(coro):
 # Failsafe thread
 # ---------------------------------------------------------------------
 failsafe_stop = threading.Event()
-FAILSAFE_TIMEOUT = 0.25  # seconds
 
 
 def failsafe_worker():
-    global last_control_time, last_steer_angle, last_throttle_angle
     logger.info("Failsafe thread started")
     while not failsafe_stop.is_set():
-        time.sleep(0.02)
+        failsafe_stop.wait(0.02)
         with SETTINGS_LOCK:
             enabled = bool(SETTINGS.get("failsafe_enabled", True))
-        if not enabled:
-            continue
 
-        now = time.time()
-        if now - last_control_time > FAILSAFE_TIMEOUT:
-            try:
-                last_steer_angle = 90.0
-                last_throttle_angle = 90.0
-                steer_servo.angle = 90
-                throttle_servo.angle = 90
-            except Exception as e:
-                logger.error("Failsafe error: %s", e)
+        try:
+            control_service.apply_failsafe_if_needed(enabled=enabled)
+        except Exception as e:
+            logger.error("Failsafe error: %s", e)
 
 # ---------------------------------------------------------------------
 # Routes
@@ -361,8 +355,6 @@ def offer():
 
 @app.route("/api/control", methods=["POST"])
 def api_control():
-    global last_control_time, last_steer_angle, last_throttle_angle
-
     data = request.get_json(force=True) or {}
     steer = data.get("steer", 90)
     throttle = data.get("throttle", 90)
@@ -373,24 +365,17 @@ def api_control():
     except Exception:
         return jsonify({"ok": False, "error": "invalid steer/throttle"}), 400
 
-    steer = clamp(steer, 0.0, 180.0)
-    throttle = clamp(throttle, 0.0, 180.0)
-
     with SETTINGS_LOCK:
         steer_speed = SETTINGS.get("steer_speed", 100.0)
         throttle_speed = SETTINGS.get("throttle_speed", 100.0)
 
-    steer_alpha = compute_alpha(steer_speed)
-    throttle_alpha = compute_alpha(throttle_speed)
-
     try:
-        last_steer_angle = (1.0 - steer_alpha) * last_steer_angle + steer_alpha * steer
-        last_throttle_angle = (1.0 - throttle_alpha) * last_throttle_angle + throttle_alpha * throttle
-
-        steer_servo.angle = last_steer_angle
-        throttle_servo.angle = last_throttle_angle
-
-        last_control_time = time.time()
+        control_service.apply_control(
+            steer=steer,
+            throttle=throttle,
+            steer_speed=steer_speed,
+            throttle_speed=throttle_speed,
+        )
     except Exception as e:
         logger.error("Error driving servos: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
