@@ -1,0 +1,16 @@
+{
+  "active_index": 0,
+  "models": [
+    {
+      "name": "Model 1",
+      "steer_trim": 0.0,
+      "throttle_trim": 0.0,
+      "steer_rate": 100.0,
+      "throttle_rate": 100.0,
+      "steer_speed": 100.0,
+      "throttle_speed": 100.0,
+      "steer_reverse": false,
+      "throttle_reverse": false
+    }
+  ]
+}

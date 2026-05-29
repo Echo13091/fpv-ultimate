@@ -1,0 +1,22 @@
+{
+  "steer_trim": -4,
+  "throttle_trim": 0,
+  "steer_rate": 50,
+  "throttle_rate": 66,
+  "steer_speed": 42,
+  "throttle_speed": 52,
+  "steer_reverse": false,
+  "throttle_reverse": false,
+  "failsafe_enabled": true,
+  "video_resolution": "1280x720",
+  "video_fps": 30,
+  "video_quality": 70,
+  "video_color_order": "BGR",
+  "video_flip": "hv",
+  "trans_state": "low",
+  "trans_low_angle": 0,
+  "trans_high_angle": 180,
+  "lights_state": "off",
+  "lights_off_angle": 0,
+  "lights_on_angle": 180
+}

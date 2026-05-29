@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>UNLIMITED RC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #0b0b0f;
+            --card: #15151c;
+            --accent: #ff9800;
+            --accent-soft: rgba(255, 152, 0, 0.15);
+            --accent-soft2: rgba(255, 152, 0, 0.05);
+            --text: #f5f5f5;
+            --text-soft: #bbbbbb;
+            --border: #262637;
+            --danger: #ff5252;
+            --ok: #4caf50;
+            --bad: #e53935;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #1b1b26 0, #050507 40%, #000000 100%);
+            color: var(--text);
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 0.5rem 0;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 16px 16px 40px;
+        }
+
+        .header-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-soft);
+        }
+
+        .dot-row {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--text-soft);
+            background: linear-gradient(135deg, #15151c, #101018);
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #555;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
+        }
+
+        .dot.ok {
+            background: var(--ok);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.7);
+        }
+
+        .dot.bad {
+            background: var(--bad);
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.7);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .card-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .card {
+            background: radial-gradient(circle at top left, #252535 0, #12121a 40%, #090910 100%);
+            border-radius: 18px;
+            padding: 14px 14px 16px;
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow:
+                0 18px 40px rgba(0,0,0,0.8),
+                0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+        .card h2 {
+            font-size: 0.9rem;
+            letter-spacing: 0.17em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            color: var(--text-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card h2 span {
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: var(--text-soft);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.75rem;
+            color: var(--text-soft);
+        }
+
+        .pill strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .pill-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-soft);
+            opacity: 0.8;
+        }
+
+        .pill-value {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Video card */
+        #video-card {
+            grid-column: 1 / -1;
+        }
+
+        .video-wrapper {
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+            border: 1px solid #000;
+        }
+
+        .video-wrapper video {
+            display: block;
+            width: 100%;
+            max-height: 520px;
+            background: #000;
+        }
+
+        .video-overlay {
+            position: absolute;
+            inset: auto 8px 8px auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .video-overlay .pill {
+            pointer-events: auto;
+        }
+
+        /* Fullscreen HUD overlay (FPS + Ping only) */
+        .fullscreen-hud {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        .fullscreen-hud .pill {
+            font-size: 0.8rem;
+        }
+
+        .video-wrapper.fullscreen-active .fullscreen-hud {
+            display: flex;
+        }
+
+        /* NEW: fullscreen sizing overrides */
+        .video-wrapper.fullscreen-active {
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        .video-wrapper.fullscreen-active video {
+            width: 100%;
+            height: 100%;
+            max-height: none;
+            object-fit: cover;
+        }
+
+        .video-controls-row {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            background: linear-gradient(135deg, #20202c, #181824);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.12s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.65);
+            background: linear-gradient(135deg, #272739, #1c1c2a);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        #connectBtn {
+            background: linear-gradient(135deg, var(--accent), #ffb74d);
+            color: #1b1305;
+            border-color: rgba(255,152,0,0.7);
+        }
+
+        #recordBtn {
+            background: linear-gradient(135deg, #f44336, #ff7043);
+            color: #230303;
+            border-color: rgba(244,67,54,0.8);
+        }
+
+        #record-indicator {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+        }
+
+        .hud-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .hud-row + .hud-row {
+            margin-top: 6px;
+        }
+
+        .hud-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-soft);
+        }
+
+        /* Keybinds card */
+        .keybinds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .keybind-pill {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 7px 9px;
+            border-radius: 12px;
+            background: rgba(10,10,18,0.9);
+            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.78rem;
+        }
+
+        .keybind-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-soft);
+        }
+
+        .keybind-desc {
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+
+        /* Sliders & form */
+        .section-label {
+            font-size: 0.74rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-soft);
+            margin-top: 10px;
+            margin-bottom: 6px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .row label {
+            min-width: 80px;
+            font-size: 0.78rem;
+            color: var(--text-soft);
+        }
+
+        /* LOW-PROFILE RANGE SLIDERS */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            flex: 1;
+            width: 100%;
+            height: 14px;     /* total control height */
+            background: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* WebKit track */
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 3px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 999px;
+        }
+
+        /* WebKit thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            margin-top: -4.5px;  /* centers thumb on thin track */
+            cursor: pointer;
+        }
+
+        /* Firefox track */
+        input[type="range"]::-moz-range-track {
+            height: 3px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 999px;
+        }
+
+        /* Firefox thumb */
+        input[type="range"]::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+
+        input[type="text"],
+        select,
+        input[type="number"] {
+            background: rgba(5,5,10,0.9);
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            color: var(--text);
+            font-size: 0.8rem;
+            min-width: 0;
+        }
+
+        input[type="text"]:focus,
+        select:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(255,152,0,0.4);
+        }
+
+        .switch-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .switch-row span {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        .models-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .model-pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+        }
+
+        .model-pill.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: #ffecb3;
+        }
+
+        .model-name-input {
+            flex: 1;
+        }
+
+        .subgrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .subcard {
+            padding: 8px 10px 10px;
+            border-radius: 12px;
+            background: rgba(5,5,10,0.9);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .subcard h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--text-soft);
+            margin-bottom: 6px;
+        }
+
+        .subcard h3 span {
+            font-weight: 400;
+            color: var(--text-soft);
+        }
+
+        .sub-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 0.79rem;
+        }
+
+        .sub-row label {
+            min-width: 80px;
+            color: var(--text-soft);
+        }
+
+        .help-text {
+            font-size: 0.75rem;
+            color: var(--text-soft);
+            margin-top: 4px;
+        }
+
+        .trim-hint {
+            font-size: 0.75rem;
+            color: var(--text-soft);
+            margin-top: 2px;
+        }
+    
+/* Pin cards to desired columns in RADIO & DRIVE */
+#reverses-card { grid-column: 1 !important; }
+#accessories-card { grid-column: 2 !important; }
+
+</style>
+</head>
+<body>
+<div class="page">
+    <div class="header-row">
+        <div class="header-title">Unlimited RC</div>
+        <div class="dot-row">
+            <div class="status-pill">
+                <div class="dot" id="dot-webrtc"></div>
+                <span class="pill-label">Video</span>
+                <span class="pill-value" id="webrtc-state">Idle</span>
+            </div>
+            <div class="status-pill">
+                <div class="dot" id="dot-gamepad"></div>
+                <span class="pill-label">Gamepad</span>
+                <span class="pill-value" id="gamepad-label">Not connected</span>
+            </div>
+            <div class="status-pill">
+                <div class="dot" id="dot-failsafe"></div>
+                <span class="pill-label">Failsafe</span>
+                <span class="pill-value">Channel watchdog</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-grid">
+        <!-- VIDEO CARD -->
+        <div class="card" id="video-card">
+            <h2>
+                <span>Video</span>
+                <span class="hud-row">
+                    <span class="pill">
+                        <span class="pill-label">FPS</span>
+                        <span class="pill-value" id="fps-value">0.0</span>
+                    </span>
+                    <span class="pill">
+                        <span class="pill-label">Ping</span>
+                        <span class="pill-value"><span id="ping-value">–</span> ms</span>
+                    </span>
+                </span>
+            </h2>
+
+            <div class="hud-row" style="margin-bottom:6px;">
+                <div class="pill">
+                    <span class="pill-label">Trim HUD</span>
+                    <span class="pill-value" id="trim-hud-values">ST:+0 TH:+0</span>
+                </div>
+            </div>
+
+            <div class="video-wrapper" id="video-wrapper">
+                <video id="remoteVideo" autoplay playsinline></video>
+
+                <div class="video-overlay">
+                    <span class="pill">
+                        <span class="pill-label">Recording</span>
+                        <span class="pill-value" id="record-status">Idle</span>
+                    </span>
+                </div>
+
+                <!-- fullscreen HUD: only this shows in fullscreen mode -->
+                <div id="fullscreen-hud" class="fullscreen-hud">
+                    <div class="pill">
+                        <span class="pill-label">FPS</span>
+                        <span class="pill-value" id="fps-value-full">0.0</span>
+                    </div>
+                    <div class="pill">
+                        <span class="pill-label">Ping</span>
+                        <span class="pill-value"><span id="ping-value-full">–</span> ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="video-controls-row">
+                <button id="btn-connect-video">Connect Video</button>
+                <button id="btn-disconnect-video" disabled>Disconnect</button>
+                <button id="btn-fullscreen">Fullscreen</button>
+                <button id="btn-record">Record</button>
+                <span id="record-indicator" style="color:#ff5252; font-weight:bold; display:none;">● REC</span>
+            </div>
+            <div class="help-text">
+                
+            </div>
+        </div>
+
+        <!-- PS5 KEYBINDS CARD -->
+        <div class="card">
+            <h2>PS5 DualSense Keybinds</h2>
+            <div class="keybinds-grid">
+                <div class="keybind-pill">
+                    <div class="keybind-title">Steering</div>
+                    <div class="keybind-desc">Left stick X axis</div>
+                </div>
+                <div class="keybind-pill">
+                    <div class="keybind-title">Throttle / Brake</div>
+                    <div class="keybind-desc">R2 = throttle, L2 = brake / reverse</div>
+                </div>
+                <div class="keybind-pill">
+                    <div class="keybind-title">Trims (hold L1)</div>
+                    <div class="keybind-desc">
+                        L1 + D-pad ← / → = steer trim<br>
+                        L1 + D-pad ↑ / ↓ = throttle trim
+                    </div>
+                </div>
+                <div class="keybind-pill">
+                    <div class="keybind-title">Video</div>
+                    <div class="keybind-desc">
+                        D-pad ↑ = Connect video<br>
+                        Triangle = Fullscreen toggle
+                    </div>
+                </div>
+                <div class="keybind-pill">
+                    <div class="keybind-title">Recording</div>
+                    <div class="keybind-desc">
+                        D-pad → = Start / Stop recording
+                    </div>
+                </div>
+                <div class="keybind-pill">
+                    <div class="keybind-title">Failsafe</div>
+                    <div class="keybind-desc">
+                        Loss of control signal snaps both channels back to neutral (90°).
+                    </div>
+                </div>
+                <div class="keybind-pill">
+                    <div class="keybind-title">Reboot</div>
+                    <div class="keybind-desc">
+                        Hold PS button for 3 seconds → Pi reboot
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIDEO SETTINGS + MODELS -->
+        <div class="card">
+            <h2>Video & Model</h2>
+            <div class="subgrid">
+                <div class="subcard">
+                    <h3>Video Settings <span>(camera)</span></h3>
+                    <div class="sub-row">
+                        <label for="video-resolution">Resolution</label>
+                        <select id="video-resolution">
+                            <option value="640x360">640x360</option>
+                            <option value="1280x720">1280x720</option>
+                            <option value="1920x1080">1920x1080</option>
+                        </select>
+                    </div>
+                    <div class="sub-row">
+                        <label for="video-fps">FPS</label>
+                        <select id="video-fps">
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="60">60</option>
+                        </select>
+                    </div>
+                    <div class="sub-row">
+                        <label for="video-quality">Quality</label>
+                        <input id="video-quality" type="number" min="10" max="100" step="5" value="70" />
+                    </div>
+                    <div class="sub-row">
+                        <label for="video-color-order">Color</label>
+                        <select id="video-color-order">
+                            <option value="RGB">RGB</option>
+                            <option value="BGR">BGR</option>
+                        </select>
+                    </div>
+                    <div class="sub-row">
+                        <label for="video-flip">Flip</label>
+                        <select id="video-flip">
+                            <option value="none">None</option>
+                            <option value="h">Horizontal</option>
+                            <option value="v">Vertical</option>
+                            <option value="hv">Both</option>
+                        </select>
+                    </div>
+                    <div class="help-text">
+                        <span id="res-value">1280x720 @ 30fps Q70 RGB</span>
+                    </div>
+                    <button id="btn-save-video" style="margin-top:8px; width:100%;">Save Video</button>
+                </div>
+
+                <div class="subcard">
+                    <h3>Models <span>(radio presets)</span></h3>
+                    <div id="models-container" class="models-row"></div>
+                    <div class="models-row">
+                        <input id="model-name" class="model-name-input" type="text" placeholder="Model name" />
+                    </div>
+                    <div class="models-row">
+                        <button id="btn-save-model">Save to slot</button>
+                        <button id="btn-new-model">New slot</button>
+                        <button id="btn-delete-model">Delete slot</button>
+                    </div>
+                    <div class="help-text">
+                        Models store trim, rates, speeds, and reverses so you can swap vehicles quickly.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RADIO / DRIVE CARD -->
+        <div class="card">
+            <h2>Radio & Drive</h2>
+            <div class="subgrid">
+                <div class="subcard">
+                    <h3>Trims</h3>
+                    <div class="row">
+                        <label for="steer-trim" id="steer-trim-label">ST:+0</label>
+                        <input id="steer-trim" type="range" min="-30" max="30" step="1" value="0" />
+                    </div>
+                    <div class="row">
+                        <label for="throttle-trim" id="throttle-trim-label">TH:+0</label>
+                        <input id="throttle-trim" type="range" min="-30" max="30" step="1" value="0" />
+                    </div>
+                    <div class="trim-hint">
+                        Trims auto-save when bumped with L1 + D-pad.
+                    </div>
+                </div>
+
+                <div class="subcard">
+                    <h3>Rates & Speed</h3>
+<div class="row">
+        <label for="steer-rate">Steer rate</label>
+        <input id="steer-rate" type="range" min="20" max="100" step="1" value="100" />
+    </div>
+    <div class="row">
+        <label for="throttle-rate">Throttle rate</label>
+        <input id="throttle-rate" type="range" min="20" max="100" step="1" value="100" />
+    </div>
+    <div class="row">
+        <label for="steer-speed">Steer speed</label>
+        <input id="steer-speed" type="range" min="0" max="100" step="1" value="100" />
+    </div>
+    <div class="row">
+        <label for="throttle-speed">Throttle speed</label>
+        <input id="throttle-speed" type="range" min="0" max="100" step="1" value="100" />
+    </div>
+    <div class="help-text">
+        Lower speed = smoother servo motion. Rates limit maximum throw.
+    </div>
+</div>
+
+                  <div class="subcard">
+                      <h3>Accessories</h3>
+
+                      <div class="row">
+                          <label for="lights-select">Accessories lights</label>
+                          <select id="lights-select">
+                              <option value="off">Off</option>
+                              <option value="on">On</option>
+                          </select>
+                      </div>
+
+                      <div class="row">
+                          <label for="rc-lights-select">RC lights (GPIO21 PWM)</label>
+                          <select id="rc-lights-select">
+                              <option value="off">Off</option>
+                              <option value="on">On</option>
+                          </select>
+                      </div>
+
+                      <div class="row">
+                          <label for="trans-select">Transmission</label>
+                          <select id="trans-select">
+                              <option value="low">Low</option>
+                              <option value="high">High</option>
+                          </select>
+                      </div>
+
+                      <div class="help-text">
+                          RC lights uses the GPIO21 PWM switch (1000µs=Off, 2000µs=On).
+                      </div>
+                  </div>
+
+                <div class="subcard">
+                    <h3>Reverses & Failsafe</h3>
+                    <div class="switch-row">
+                        <input id="steer-reverse" type="checkbox" />
+                        <span>Reverse steering</span>
+                    </div>
+                    <div class="switch-row">
+                        <input id="throttle-reverse" type="checkbox" />
+                        <span>Reverse throttle</span>
+                    </div>
+                    <div class="switch-row">
+                        <input id="failsafe-enabled" type="checkbox" checked />
+                        <span>Failsafe enabled</span>
+                    </div>
+                    <div class="help-text">
+                        Failsafe snaps both channels to neutral if control packets stop for ~250 ms.
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-save-settings" style="margin-top:10px; width:100%;">Save Radio Settings</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/main.js"></script>
+</body>
+</html>
