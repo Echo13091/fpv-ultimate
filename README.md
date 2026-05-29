@@ -186,6 +186,7 @@ fpv-ultimate/
 │   ├── accessories.py
 │   ├── accessory_routes.py
 │   ├── control_math.py
+│   ├── control_service.py
 │   ├── health.py
 │   ├── pages.py
 │   ├── settings_models_routes.py
@@ -207,6 +208,7 @@ fpv-ultimate/
 | `app.py` | Main Flask app, WebRTC camera handling, GPIO startup, routes, lifecycle |
 | `fpv_ultimate/storage.py` | Settings/model JSON loading and saving |
 | `fpv_ultimate/control_math.py` | Control smoothing helper |
+| `fpv_ultimate/control_service.py` | Steering/throttle output state and failsafe behavior |
 | `fpv_ultimate/accessories.py` | Transmission/lights accessory servo helper |
 | `fpv_ultimate/accessory_routes.py` | Accessory API route registration for lights/transmission state |
 | `fpv_ultimate/health.py` | Health-check response helper |
