@@ -27,6 +27,7 @@ from aiortc import (
 from fpv_ultimate.accessories import apply_accessories_from_settings
 from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
+from fpv_ultimate.health import ping_response
 from fpv_ultimate.system_actions import request_reboot
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
@@ -327,7 +328,7 @@ def index():
 
 @app.route("/ping")
 def ping():
-    return "pong", 200
+    return ping_response()
 
 
 @app.route("/offer", methods=["POST"])
