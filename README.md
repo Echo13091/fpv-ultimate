@@ -255,6 +255,8 @@ These are preserved in the service reference, but may not be used by the current
 
 ## Installation on Raspberry Pi OS
 
+A repeatable Raspberry Pi setup helper is available at `scripts/install_pi.sh`.
+
 Install system packages:
 
 ```bash
