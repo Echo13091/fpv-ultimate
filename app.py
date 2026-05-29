@@ -25,6 +25,7 @@ from aiortc import (
 )
 
 from fpv_ultimate.accessories import apply_accessories_from_settings
+from fpv_ultimate.accessory_routes import register_accessory_routes
 from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
 from fpv_ultimate.health import ping_response
@@ -397,53 +398,13 @@ def api_control():
     return jsonify({"ok": True})
 
 
-@app.route("/api/transmission", methods=["POST"])
-def api_transmission():
-    """Set or toggle transmission high/low on GPIO6 (servo PWM)."""
-    payload = request.get_json(silent=True) or {}
-    req_state = (payload.get("state") or "").lower().strip()
-
-    with SETTINGS_LOCK:
-        cur = (SETTINGS.get("trans_state") or "low").lower()
-        if req_state in ("high", "low"):
-            new_state = req_state
-        else:
-            new_state = "high" if cur != "high" else "low"
-        SETTINGS["trans_state"] = new_state
-        save_settings_to_disk(SETTINGS)
-
-    _apply_accessories_from_settings()
-    return jsonify({"ok": True, "state": new_state})
-
-
-@app.route("/api/lights", methods=["POST"])
-def api_lights():
-    """Set or toggle lights on/off on GPIO21 (servo PWM)."""
-    payload = request.get_json(silent=True) or {}
-    req_state = (payload.get("state") or "").lower().strip()
-
-    with SETTINGS_LOCK:
-        cur = (SETTINGS.get("lights_state") or "off").lower()
-        if req_state in ("on", "off"):
-            new_state = req_state
-        else:
-            new_state = "on" if cur != "on" else "off"
-        SETTINGS["lights_state"] = new_state
-        save_settings_to_disk(SETTINGS)
-
-    _apply_accessories_from_settings()
-    return jsonify({"ok": True, "state": new_state})
-
-
-@app.route("/api/accessories", methods=["GET"])
-def api_accessories():
-    with SETTINGS_LOCK:
-        return jsonify({
-            "ok": True,
-            "trans_state": (SETTINGS.get("trans_state") or "low").lower(),
-            "lights_state": (SETTINGS.get("lights_state") or "off").lower(),
-        })
-
+register_accessory_routes(
+    app,
+    settings_lock=SETTINGS_LOCK,
+    get_settings=get_settings,
+    save_settings_to_disk=save_settings_to_disk,
+    apply_accessories_from_settings=_apply_accessories_from_settings,
+)
 
 
 register_settings_model_routes(
