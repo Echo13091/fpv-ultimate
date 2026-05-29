@@ -62,6 +62,8 @@ The current build uses:
 
 ## Wiring
 
+Detailed wiring, buck converter, common ground, and PWM signal instructions are available in [docs/wiring.md](docs/wiring.md).
+
 ### GPIO Pin Mapping
 
 | Function | Raspberry Pi GPIO | Physical Pin | Signal Type | Notes |
