@@ -12,3 +12,8 @@ def compute_alpha(speed_percent: float) -> float:
 
     value = max(0.0, min(value, 100.0))
     return 0.1 + 0.9 * (value / 100.0)
+
+def clamp(value: float, minimum: float, maximum: float) -> float:
+    """Clamp a numeric value between minimum and maximum."""
+    return max(minimum, min(maximum, value))
+

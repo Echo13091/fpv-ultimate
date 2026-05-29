@@ -26,7 +26,7 @@ from aiortc import (
 )
 
 from fpv_ultimate.accessories import apply_accessories_from_settings
-from fpv_ultimate.control_math import compute_alpha
+from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
@@ -359,9 +359,6 @@ def api_control():
         throttle = float(throttle)
     except Exception:
         return jsonify({"ok": False, "error": "invalid steer/throttle"}), 400
-
-    def clamp(v, lo, hi):
-        return max(lo, min(hi, v))
 
     steer = clamp(steer, 0.0, 180.0)
     throttle = clamp(throttle, 0.0, 180.0)
