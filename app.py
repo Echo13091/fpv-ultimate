@@ -25,6 +25,7 @@ from aiortc import (
     RTCRtpSender,
 )
 
+from fpv_ultimate.accessories import apply_accessories_from_settings
 from fpv_ultimate.control_math import compute_alpha
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
@@ -149,25 +150,9 @@ def save_settings_to_disk(settings):
 def _apply_accessories_from_settings():
     """Drive GPIO6/GPIO21 servos to match current SETTINGS."""
     with SETTINGS_LOCK:
-        trans_state = (SETTINGS.get("trans_state") or "low").lower()
-        lights_state = (SETTINGS.get("lights_state") or "off").lower()
+        settings_snapshot = dict(SETTINGS)
 
-        trans_low = float(SETTINGS.get("trans_low_angle", 0.0))
-        trans_high = float(SETTINGS.get("trans_high_angle", 180.0))
-
-        lights_off = float(SETTINGS.get("lights_off_angle", 0.0))
-        lights_on = float(SETTINGS.get("lights_on_angle", 180.0))
-
-    try:
-        trans_servo.angle = trans_high if trans_state == "high" else trans_low
-    except Exception as e:
-        logger.error("Transmission servo error (GPIO6): %s", e)
-
-    try:
-        lights_servo.angle = lights_on if lights_state == "on" else lights_off
-    except Exception as e:
-        logger.error("Lights servo error (GPIO21): %s", e)
-
+    apply_accessories_from_settings(settings_snapshot, trans_servo, lights_servo)
 
 def load_models_from_disk():
     return storage_load_models_from_disk(MODELS_PATH)
