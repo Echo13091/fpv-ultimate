@@ -28,6 +28,7 @@ from fpv_ultimate.accessories import apply_accessories_from_settings
 from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
 from fpv_ultimate.health import ping_response
+from fpv_ultimate.pages import index_template
 from fpv_ultimate.system_actions import request_reboot
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
@@ -323,7 +324,7 @@ def failsafe_worker():
 # ---------------------------------------------------------------------
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template(index_template())
 
 
 @app.route("/ping")
