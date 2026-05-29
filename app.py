@@ -92,7 +92,9 @@ throttle_servo = AngularServo(
     pin_factory=factory,
 )
 
-# Neutral on boot# Accessories (servo-style PWM switches)
+# Neutral on boot
+
+# Accessories (servo-style PWM switches)
 # NOTE: These use 1000–2000µs pulses (common for simple servo switch boards)
 trans_servo = AngularServo(
     6,
