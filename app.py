@@ -25,6 +25,7 @@ from aiortc import (
     RTCRtpSender,
 )
 
+from fpv_ultimate.control_math import compute_alpha
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
     DEFAULT_SETTINGS,
@@ -175,21 +176,6 @@ def load_models_from_disk():
 def save_models_to_disk(data):
     return storage_save_models_to_disk(MODELS_PATH, data)
 
-
-def compute_alpha(speed_percent: float) -> float:
-    """
-    Convert "speed" (0–100%) into a smoothing factor 0–1.
-    0%  -> very slow movement
-    100% -> almost direct
-    """
-    try:
-        v = float(speed_percent)
-    except Exception:
-        v = 100.0
-
-    v = max(0.0, min(v, 100.0))
-    alpha = 0.1 + 0.9 * (v / 100.0)  # 0.1..1.0
-    return alpha
 
 # ---------------------------------------------------------------------
 # Camera configure / reconfigure
