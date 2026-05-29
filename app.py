@@ -29,6 +29,7 @@ from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
 from fpv_ultimate.health import ping_response
 from fpv_ultimate.pages import index_template
+from fpv_ultimate.settings_models_routes import register_settings_model_routes
 from fpv_ultimate.system_actions import request_reboot
 from fpv_ultimate.storage import (
     DEFAULT_MODEL,
@@ -71,6 +72,15 @@ logger = logging.getLogger("fpv-ultimate")
 # ---------------------------------------------------------------------
 SETTINGS = {}
 SETTINGS_LOCK = threading.Lock()
+
+
+def get_settings():
+    return SETTINGS
+
+
+def set_settings(settings):
+    global SETTINGS
+    SETTINGS = settings
 
 # ---------------------------------------------------------------------
 # Servo setup
@@ -436,131 +446,19 @@ def api_accessories():
 
 
 
-@app.route("/api/settings", methods=["GET", "POST"])
-def api_settings():
-    global SETTINGS
-
-    if request.method == "GET":
-        with SETTINGS_LOCK:
-            return jsonify(SETTINGS)
-
-    incoming = request.get_json(force=True) or {}
-    with SETTINGS_LOCK:
-        old_res = SETTINGS.get("video_resolution", DEFAULT_SETTINGS["video_resolution"])
-        old_fps = int(SETTINGS.get("video_fps", DEFAULT_SETTINGS["video_fps"]))
-        old_flip = (SETTINGS.get("video_flip", DEFAULT_SETTINGS.get("video_flip", "none")) or "none").lower()
-
-        SETTINGS.update({k: v for k, v in incoming.items() if k in DEFAULT_SETTINGS})
-        saved = save_settings_to_disk(SETTINGS)
-        SETTINGS = saved
-        new_res = saved.get("video_resolution", old_res)
-        try:
-            new_fps = int(saved.get("video_fps", old_fps))
-        except Exception:
-            new_fps = old_fps
-
-        new_flip = (saved.get("video_flip", old_flip) or "none").lower()
-
-    if old_res != new_res or old_fps != new_fps or old_flip != new_flip:
-        logger.info(
-            "Video settings changed: %s @ %d (%s) -> %s @ %d (%s)",
-            old_res,
-            old_fps,
-            old_flip,
-            new_res,
-            new_fps,
-            new_flip,
-        )
-        try:
-            configure_camera_from_settings()
-        except Exception as e:
-            logger.error("Failed to reconfigure camera: %s", e)
-
-    return jsonify({"ok": True, "settings": SETTINGS})
-
-
-@app.route("/api/models", methods=["GET"])
-def api_models_list():
-    data = load_models_from_disk()
-    return jsonify(data)
-
-
-@app.route("/api/models/save", methods=["POST"])
-def api_models_save():
-    payload = request.get_json(force=True) or {}
-    idx = int(payload.get("index", -1))
-    model = payload.get("model")
-
-    if not isinstance(model, dict):
-        return jsonify({"ok": False, "error": "model must be object"}), 400
-
-    data = load_models_from_disk()
-    models = data.get("models", [])
-
-    if not models:
-        models = [dict(DEFAULT_MODEL)]
-
-    if idx < 0 or idx >= len(models):
-        models.append(model)
-        idx = len(models) - 1
-    else:
-        models[idx] = model
-
-    data["models"] = models
-    data["active_index"] = idx
-    save_models_to_disk(data)
-    return jsonify({"ok": True, "index": idx})
-
-
-@app.route("/api/models/delete", methods=["POST"])
-def api_models_delete():
-    payload = request.get_json(force=True) or {}
-    idx = int(payload.get("index", -1))
-
-    data = load_models_from_disk()
-    models = data.get("models", [])
-
-    if idx < 0 or idx >= len(models):
-        return jsonify({"ok": False, "error": "invalid index"}), 400
-
-    if len(models) == 1:
-        models[0] = dict(DEFAULT_MODEL)
-        data["active_index"] = 0
-    else:
-        models.pop(idx)
-        data["active_index"] = max(
-            0, min(data.get("active_index", 0), len(models) - 1)
-        )
-
-    data["models"] = models
-    save_models_to_disk(data)
-    return jsonify({"ok": True, "active_index": data["active_index"]})
-
-
-@app.route("/api/models/rename", methods=["POST"])
-def api_models_rename():
-    payload = request.get_json(force=True) or {}
-    idx = int(payload.get("index", -1))
-    new_name = (payload.get("name") or "").strip()
-
-    if not new_name:
-        return jsonify({"ok": False, "error": "name required"}), 400
-
-    data = load_models_from_disk()
-    models = data.get("models", [])
-
-    if idx < 0 or idx >= len(models):
-        return jsonify({"ok": False, "error": "invalid index"}), 400
-
-    model = models[idx]
-    if not isinstance(model, dict):
-        model = {}
-        models[idx] = model
-    model["name"] = new_name
-
-    data["models"] = models
-    save_models_to_disk(data)
-    return jsonify({"ok": True})
+register_settings_model_routes(
+    app,
+    settings_lock=SETTINGS_LOCK,
+    get_settings=get_settings,
+    set_settings=set_settings,
+    default_settings=DEFAULT_SETTINGS,
+    default_model=DEFAULT_MODEL,
+    load_models_from_disk=load_models_from_disk,
+    save_models_to_disk=save_models_to_disk,
+    save_settings_to_disk=save_settings_to_disk,
+    configure_camera_from_settings=configure_camera_from_settings,
+    logger=logger,
+)
 
 # NEW: reboot endpoint triggered by PS button hold
 @app.route("/api/reboot", methods=["POST"])
