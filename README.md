@@ -185,6 +185,8 @@ fpv-ultimate/
 │   ├── __init__.py
 │   ├── accessories.py
 │   ├── control_math.py
+│   ├── health.py
+│   ├── pages.py
 │   ├── storage.py
 │   ├── system_actions.py
 │   └── video_config.py
@@ -204,6 +206,8 @@ fpv-ultimate/
 | `fpv_ultimate/storage.py` | Settings/model JSON loading and saving |
 | `fpv_ultimate/control_math.py` | Control smoothing helper |
 | `fpv_ultimate/accessories.py` | Transmission/lights accessory servo helper |
+| `fpv_ultimate/health.py` | Health-check response helper |
+| `fpv_ultimate/pages.py` | Dashboard page/template helper |
 | `fpv_ultimate/system_actions.py` | System-level helpers such as reboot requests |
 | `fpv_ultimate/video_config.py` | Video resolution and FPS helper logic |
 | `static/main.js` | Browser/gamepad control logic |
