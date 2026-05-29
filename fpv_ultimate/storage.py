@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import tempfile
 
 logger = logging.getLogger("fpv-ultimate.storage")
 
@@ -56,10 +57,37 @@ DEFAULT_MODEL = {
 }
 
 
+def _atomic_json_write(path: str, data: dict) -> None:
+    """Write JSON through a temp file, then atomically replace the target."""
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    os.makedirs(directory, exist_ok=True)
+
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=f".{os.path.basename(path)}.",
+        suffix=".tmp",
+        dir=directory,
+        text=True,
+    )
+
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
 def load_settings_from_disk(settings_path: str) -> dict:
     if not os.path.exists(settings_path):
-        with open(settings_path, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_SETTINGS, f, indent=2)
+        _atomic_json_write(settings_path, DEFAULT_SETTINGS)
         return dict(DEFAULT_SETTINGS)
 
     try:
@@ -79,16 +107,14 @@ def load_settings_from_disk(settings_path: str) -> dict:
 def save_settings_to_disk(settings_path: str, settings: dict) -> dict:
     tmp = dict(DEFAULT_SETTINGS)
     tmp.update(settings)
-    with open(settings_path, "w", encoding="utf-8") as f:
-        json.dump(tmp, f, indent=2)
+    _atomic_json_write(settings_path, tmp)
     return tmp
 
 
 def load_models_from_disk(models_path: str) -> dict:
     if not os.path.exists(models_path):
         data = {"active_index": 0, "models": [dict(DEFAULT_MODEL)]}
-        with open(models_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        _atomic_json_write(models_path, data)
         return data
 
     try:
@@ -101,8 +127,7 @@ def load_models_from_disk(models_path: str) -> dict:
     except Exception as e:
         logger.error("Failed to read models.json, recreating: %s", e)
         data = {"active_index": 0, "models": [dict(DEFAULT_MODEL)]}
-        with open(models_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        _atomic_json_write(models_path, data)
         return data
 
     models = data.get("models") or []
@@ -115,5 +140,4 @@ def load_models_from_disk(models_path: str) -> dict:
 
 
 def save_models_to_disk(models_path: str, data: dict) -> None:
-    with open(models_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    _atomic_json_write(models_path, data)
