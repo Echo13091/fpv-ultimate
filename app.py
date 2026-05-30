@@ -387,6 +387,7 @@ register_accessory_routes(
     app,
     settings_lock=SETTINGS_LOCK,
     get_settings=get_settings,
+    set_settings=set_settings,
     save_settings_to_disk=save_settings_to_disk,
     apply_accessories_from_settings=_apply_accessories_from_settings,
 )
