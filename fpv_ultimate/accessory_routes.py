@@ -6,6 +6,7 @@ def register_accessory_routes(
     *,
     settings_lock,
     get_settings,
+    set_settings,
     save_settings_to_disk,
     apply_accessories_from_settings,
 ):
@@ -16,7 +17,7 @@ def register_accessory_routes(
         req_state = (payload.get("state") or "").lower().strip()
 
         with settings_lock:
-            settings = get_settings()
+            settings = dict(get_settings())
             cur = (settings.get("trans_state") or "low").lower()
 
             if req_state in ("high", "low"):
@@ -25,7 +26,8 @@ def register_accessory_routes(
                 new_state = "high" if cur != "high" else "low"
 
             settings["trans_state"] = new_state
-            save_settings_to_disk(settings)
+            saved = save_settings_to_disk(settings)
+            set_settings(saved)
 
         apply_accessories_from_settings()
         return jsonify({"ok": True, "state": new_state})
@@ -37,7 +39,7 @@ def register_accessory_routes(
         req_state = (payload.get("state") or "").lower().strip()
 
         with settings_lock:
-            settings = get_settings()
+            settings = dict(get_settings())
             cur = (settings.get("lights_state") or "off").lower()
 
             if req_state in ("on", "off"):
@@ -46,7 +48,8 @@ def register_accessory_routes(
                 new_state = "on" if cur != "on" else "off"
 
             settings["lights_state"] = new_state
-            save_settings_to_disk(settings)
+            saved = save_settings_to_disk(settings)
+            set_settings(saved)
 
         apply_accessories_from_settings()
         return jsonify({"ok": True, "state": new_state})
