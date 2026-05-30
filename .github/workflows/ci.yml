@@ -43,7 +43,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest
+          python -m pip install pytest flask
 
       - name: Run hardware-free unit tests
         run: |
