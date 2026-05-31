@@ -5,9 +5,9 @@ After=network.target pigpiod.service
 
 [Service]
 Type=simple
-User=rc2
-WorkingDirectory=/home/rc2/fpv-ultimate
-ExecStart=/home/rc2/fpv-ultimate/.venv/bin/python app.py
+User=pi
+WorkingDirectory=/home/pi/fpv-ultimate
+ExecStart=/home/pi/fpv-ultimate/.venv/bin/python app.py
 Restart=always
 RestartSec=2
 Environment=PYTHONUNBUFFERED=1
