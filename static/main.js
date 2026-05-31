@@ -377,6 +377,38 @@ async function updateGpsStatus() {
     }
 }
 
+
+async function updateGpsHistorySummary() {
+    try {
+        const resp = await fetch("/gps/history", { cache: "no-store" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const history = await resp.json();
+        const count = Number(history.count || 0);
+
+        const countEl = $("gps-history-count");
+        const stateEl = $("gps-track-state");
+
+        if (countEl) countEl.textContent = `${count} points`;
+
+        if (stateEl) {
+            stateEl.textContent = count > 0 ? "Recording" : "Waiting";
+            stateEl.style.color = count > 0 ? "#4caf50" : "#ff9800";
+        }
+    } catch (err) {
+        console.error("gps history error:", err);
+
+        const countEl = $("gps-history-count");
+        const stateEl = $("gps-track-state");
+
+        if (countEl) countEl.textContent = "--";
+        if (stateEl) {
+            stateEl.textContent = "Offline";
+            stateEl.style.color = "#f44336";
+        }
+    }
+}
+
 // ------------------------------------------------------------
 // Settings
 // ------------------------------------------------------------
@@ -1162,7 +1194,11 @@ function init() {
     pingTimer = setInterval(doPing, 2000);
 
     updateGpsStatus();
-    gpsTimer = setInterval(updateGpsStatus, 2000);
+    updateGpsHistorySummary();
+    gpsTimer = setInterval(() => {
+        updateGpsStatus();
+        updateGpsHistorySummary();
+    }, 2000);
 }
 
 window.addEventListener("load", init);
