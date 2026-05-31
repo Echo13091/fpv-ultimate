@@ -8,6 +8,8 @@ except Exception:
     WATCH_NEWSTYLE = 0
 
 _last_fix = None
+_gps_history = []
+MAX_GPS_HISTORY = 100
 
 
 def _mph(mps):
@@ -16,6 +18,34 @@ def _mph(mps):
 
 def _ft(meters):
     return None if meters is None else round(float(meters) * 3.28084, 2)
+
+
+
+def _remember_fix(fix):
+    """Store a compact rolling GPS breadcrumb history in memory."""
+    if not fix or not fix.get("healthy"):
+        return
+
+    point = {
+        "time": fix.get("time"),
+        "latitude": fix.get("latitude"),
+        "longitude": fix.get("longitude"),
+        "speed_mph": fix.get("speed_mph"),
+        "heading_deg": fix.get("heading_deg"),
+        "altitude_ft": fix.get("altitude_ft"),
+        "satellites_used": fix.get("satellites_used"),
+        "satellites_seen": fix.get("satellites_seen"),
+    }
+
+    if point["latitude"] is None or point["longitude"] is None:
+        return
+
+    if _gps_history and _gps_history[-1].get("time") == point.get("time"):
+        _gps_history[-1] = point
+    else:
+        _gps_history.append(point)
+
+    del _gps_history[:-MAX_GPS_HISTORY]
 
 
 def read_gps(timeout_sec=2):
@@ -73,6 +103,7 @@ def read_gps(timeout_sec=2):
 
             candidate_fix = fix
             _last_fix = fix
+            _remember_fix(fix)
             if sky:
                 return fix
 
@@ -100,3 +131,11 @@ def read_gps(timeout_sec=2):
 def get_last_known_fix():
     """Return the most recent GPS fix captured by read_gps."""
     return {"available": _last_fix is not None, "last_known": _last_fix}
+
+def get_gps_history():
+    """Return recent in-memory GPS breadcrumb points."""
+    return {
+        "count": len(_gps_history),
+        "points": list(_gps_history),
+    }
+
