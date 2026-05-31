@@ -378,6 +378,86 @@ async function updateGpsStatus() {
 }
 
 
+
+function renderGpsMiniMap(points) {
+    const canvas = $("gps-mini-map");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.fillStyle = "rgba(5,5,10,0.95)";
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+
+    const valid = (points || []).filter((p) =>
+        Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))
+    );
+
+    if (valid.length < 2) {
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "10px system-ui";
+        ctx.fillText("Waiting for track", 12, h / 2);
+        return;
+    }
+
+    const lats = valid.map((p) => Number(p.latitude));
+    const lons = valid.map((p) => Number(p.longitude));
+
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+
+    const pad = 10;
+    const latSpan = Math.max(maxLat - minLat, 0.00001);
+    const lonSpan = Math.max(maxLon - minLon, 0.00001);
+
+    const toXY = (point) => {
+        const lon = Number(point.longitude);
+        const lat = Number(point.latitude);
+
+        const x = pad + ((lon - minLon) / lonSpan) * (w - pad * 2);
+        const y = h - pad - ((lat - minLat) / latSpan) * (h - pad * 2);
+
+        return { x, y };
+    };
+
+    ctx.strokeStyle = "#4caf50";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    valid.forEach((point, idx) => {
+        const { x, y } = toXY(point);
+        if (idx === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.stroke();
+
+    const first = toXY(valid[0]);
+    ctx.fillStyle = "#bbbbbb";
+    ctx.beginPath();
+    ctx.arc(first.x, first.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    const last = toXY(valid[valid.length - 1]);
+    ctx.fillStyle = "#ff9800";
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+
 async function updateGpsHistorySummary() {
     try {
         const resp = await fetch("/gps/history", { cache: "no-store" });
@@ -395,6 +475,8 @@ async function updateGpsHistorySummary() {
             stateEl.textContent = count > 0 ? "Recording" : "Waiting";
             stateEl.style.color = count > 0 ? "#4caf50" : "#ff9800";
         }
+
+        renderGpsMiniMap(history.points || []);
     } catch (err) {
         console.error("gps history error:", err);
 
@@ -406,6 +488,8 @@ async function updateGpsHistorySummary() {
             stateEl.textContent = "Offline";
             stateEl.style.color = "#f44336";
         }
+
+        renderGpsMiniMap([]);
     }
 }
 
