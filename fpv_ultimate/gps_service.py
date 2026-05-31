@@ -40,6 +40,15 @@ def _remember_fix(fix):
     if point["latitude"] is None or point["longitude"] is None:
         return
 
+    if float(point["latitude"]) == 0.0 and float(point["longitude"]) == 0.0:
+        return
+
+    if fix.get("mode", 0) < 2:
+        return
+
+    if (fix.get("satellites_used") or 0) < 4:
+        return
+
     if _gps_history and _gps_history[-1].get("time") == point.get("time"):
         _gps_history[-1] = point
     else:
