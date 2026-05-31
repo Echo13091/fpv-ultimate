@@ -87,4 +87,49 @@ print('Control neutral OK')
 PY
 printf '\n'
 
+
+printf '== GPS status endpoint ==\n'
+curl -fsS "$BASE_URL/gps/status" | python3 -m json.tool >/tmp/fpv-gps-status-smoke.json
+python3 - <<'GPSSTATUSPY'
+import json
+from pathlib import Path
+
+data = json.loads(Path('/tmp/fpv-gps-status-smoke.json').read_text())
+for key in ('enabled', 'healthy', 'fix', 'device'):
+    if key not in data:
+        raise SystemExit(f'gps status response missing {key}')
+print('GPS status OK')
+GPSSTATUSPY
+printf '\n'
+
+printf '== GPS last-known endpoint ==\n'
+curl -fsS "$BASE_URL/gps/last-known" | python3 -m json.tool >/tmp/fpv-gps-last-known-smoke.json
+python3 - <<'GPSLASTPY'
+import json
+from pathlib import Path
+
+data = json.loads(Path('/tmp/fpv-gps-last-known-smoke.json').read_text())
+if 'available' not in data:
+    raise SystemExit('gps last-known response missing available')
+if 'last_known' not in data:
+    raise SystemExit('gps last-known response missing last_known')
+print('GPS last-known OK')
+GPSLASTPY
+printf '\n'
+
+printf '== GPS history endpoint ==\n'
+curl -fsS "$BASE_URL/gps/history" | python3 -m json.tool >/tmp/fpv-gps-history-smoke.json
+python3 - <<'GPSHISTORYPY'
+import json
+from pathlib import Path
+
+data = json.loads(Path('/tmp/fpv-gps-history-smoke.json').read_text())
+if 'count' not in data:
+    raise SystemExit('gps history response missing count')
+if 'points' not in data or not isinstance(data['points'], list):
+    raise SystemExit('gps history response missing points list')
+print('GPS history OK')
+GPSHISTORYPY
+printf '\n'
+
 printf 'Smoke test passed.\n'
