@@ -117,13 +117,23 @@ More detailed architecture diagrams are available in [docs/architecture.md](docs
 
 FPV Ultimate includes live GPS telemetry through USB GNSS receivers connected directly to the Raspberry Pi.
 
-Current functionality includes GPS health monitoring, 2D/3D fix detection, speed telemetry, heading telemetry, altitude telemetry, dashboard GPS status, and gpsd integration.
+Current functionality includes GPS health monitoring, 2D/3D fix detection, speed telemetry, heading telemetry, altitude telemetry, satellite quality, last-known-position recovery, breadcrumb history, dashboard GPS status, and gpsd integration.
 
 ### GPS API
 
 `GET /gps/status`
 
-The dashboard includes a GPS Telemetry card showing fix status, health, speed, heading, and altitude.
+Returns the current live GPS telemetry including fix status, health, speed, heading, altitude, satellite counts, and GPS quality fields.
+
+`GET /gps/last-known`
+
+Returns the most recent valid GPS fix captured in memory. This endpoint is intended for vehicle recovery and may include coordinates.
+
+`GET /gps/history`
+
+Returns a rolling in-memory breadcrumb history of recent GPS points. This endpoint is intended for track/recovery use and may include coordinates.
+
+The dashboard includes a GPS Telemetry card showing fix status, health, speed, heading, altitude, satellite usage, last-fix status, breadcrumb count, and track recording state.
 
 Tested hardware: u-blox 7 USB GPS receiver, GPSD 3.22, Raspberry Pi 4.
 
