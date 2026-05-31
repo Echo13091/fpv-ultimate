@@ -32,11 +32,23 @@ def read_gps(timeout_sec=2):
     try:
         session = gps(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
         start = time.time()
+        sky = {}
+        candidate_fix = None
 
         while time.time() - start < timeout_sec:
             report = session.next()
+            report_class = getattr(report, "class", None)
 
-            if getattr(report, "class", None) != "TPV":
+            if report_class == "SKY":
+                sky = {
+                    "satellites_seen": getattr(report, "nSat", None),
+                    "satellites_used": getattr(report, "uSat", None),
+                    "hdop": getattr(report, "hdop", None),
+                    "pdop": getattr(report, "pdop", None),
+                }
+                continue
+
+            if report_class != "TPV":
                 continue
 
             mode = getattr(report, "mode", 0)
@@ -55,11 +67,17 @@ def read_gps(timeout_sec=2):
                 "speed_mph": _mph(getattr(report, "speed", None)),
                 "heading_deg": getattr(report, "track", None),
                 "altitude_ft": _ft(getattr(report, "alt", None)),
+                **sky,
                 "last_read_epoch": time.time(),
             }
 
+            candidate_fix = fix
             _last_fix = fix
-            return fix
+            if sky:
+                return fix
+
+        if candidate_fix is not None:
+            return candidate_fix
 
         return {
             "enabled": True,

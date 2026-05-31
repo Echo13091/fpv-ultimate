@@ -317,6 +317,7 @@ async function updateGpsStatus() {
         const speed = $("gps-speed");
         const heading = $("gps-heading");
         const altitude = $("gps-altitude");
+        const satellites = $("gps-satellites");
 
         if (fix) fix.textContent = gps.fix || "--";
         if (health) {
@@ -326,6 +327,21 @@ async function updateGpsStatus() {
         if (speed) speed.textContent = gps.speed_mph != null ? `${Number(gps.speed_mph).toFixed(1)} mph` : "--";
         if (heading) heading.textContent = gps.heading_deg != null ? `${Math.round(Number(gps.heading_deg))}°` : "--";
         if (altitude) altitude.textContent = gps.altitude_ft != null ? `${Math.round(Number(gps.altitude_ft))} ft` : "--";
+        if (satellites) {
+            const used = gps.satellites_used;
+            const seen = gps.satellites_seen;
+            satellites.textContent = used != null && seen != null ? `${used} / ${seen}` : "--";
+
+            if (used == null) {
+                satellites.style.color = "";
+            } else if (Number(used) >= 6) {
+                satellites.style.color = "#4caf50";
+            } else if (Number(used) >= 4) {
+                satellites.style.color = "#ff9800";
+            } else {
+                satellites.style.color = "#f44336";
+            }
+        }
     } catch (err) {
         console.error("gps error:", err);
 
@@ -334,6 +350,7 @@ async function updateGpsStatus() {
         const speed = $("gps-speed");
         const heading = $("gps-heading");
         const altitude = $("gps-altitude");
+        const satellites = $("gps-satellites");
 
         if (fix) fix.textContent = "--";
         if (health) {
@@ -343,6 +360,7 @@ async function updateGpsStatus() {
         if (speed) speed.textContent = "--";
         if (heading) heading.textContent = "--";
         if (altitude) altitude.textContent = "--";
+        if (satellites) satellites.textContent = "--";
     }
 }
 
