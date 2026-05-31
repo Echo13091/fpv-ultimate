@@ -318,6 +318,7 @@ async function updateGpsStatus() {
         const heading = $("gps-heading");
         const altitude = $("gps-altitude");
         const satellites = $("gps-satellites");
+        const lastFix = $("gps-last-fix");
 
         if (fix) fix.textContent = gps.fix || "--";
         if (health) {
@@ -342,6 +343,16 @@ async function updateGpsStatus() {
                 satellites.style.color = "#f44336";
             }
         }
+
+        if (lastFix) {
+            if (gps.healthy || gps.last_known) {
+                lastFix.textContent = gps.healthy ? "Live" : "Available";
+                lastFix.style.color = gps.healthy ? "#4caf50" : "#ff9800";
+            } else {
+                lastFix.textContent = "--";
+                lastFix.style.color = "";
+            }
+        }
     } catch (err) {
         console.error("gps error:", err);
 
@@ -351,6 +362,7 @@ async function updateGpsStatus() {
         const heading = $("gps-heading");
         const altitude = $("gps-altitude");
         const satellites = $("gps-satellites");
+        const lastFix = $("gps-last-fix");
 
         if (fix) fix.textContent = "--";
         if (health) {
@@ -361,6 +373,7 @@ async function updateGpsStatus() {
         if (heading) heading.textContent = "--";
         if (altitude) altitude.textContent = "--";
         if (satellites) satellites.textContent = "--";
+        if (lastFix) lastFix.textContent = "--";
     }
 }
 
