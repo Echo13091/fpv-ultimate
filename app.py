@@ -29,7 +29,7 @@ from fpv_ultimate.accessory_routes import register_accessory_routes
 from fpv_ultimate.control_math import clamp, compute_alpha
 from fpv_ultimate.video_config import VIDEO_RESOLUTIONS, clamp_fps, get_video_size
 from fpv_ultimate.health import ping_response
-from fpv_ultimate.gps_service import read_gps
+from fpv_ultimate.gps_service import get_last_known_fix, read_gps
 from fpv_ultimate.pages import index_template
 from fpv_ultimate.settings_models_routes import register_settings_model_routes
 from fpv_ultimate.system_actions import request_reboot
@@ -343,6 +343,12 @@ def ping():
 def gps_status():
     return jsonify(read_gps())
 
+
+
+
+@app.route("/gps/last-known")
+def gps_last_known():
+    return jsonify(get_last_known_fix())
 
 @app.route("/offer", methods=["POST"])
 def offer():

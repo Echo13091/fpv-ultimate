@@ -96,3 +96,7 @@ def read_gps(timeout_sec=2):
             "error": str(exc),
             "last_known": _last_fix,
         }
+
+def get_last_known_fix():
+    """Return the most recent GPS fix captured by read_gps."""
+    return {"available": _last_fix is not None, "last_known": _last_fix}
