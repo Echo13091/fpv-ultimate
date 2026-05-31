@@ -1,6 +1,6 @@
 # FPV Ultimate
 
-FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform that combines live browser video, gamepad control, WebRTC streaming, GPIO servo output, model profiles, accessory control, and failsafe behavior into one local-first RC control system.
+FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform that combines live browser video, gamepad control, WebRTC streaming, GPIO servo output, GPS telemetry, model profiles, accessory control, and failsafe behavior into one local-first RC control system.
 
 This is a real hardware project, not a mock dashboard. It is built around live camera video, browser Gamepad API input, steering/throttle PWM output, transmission and light accessories, runtime configuration, and safe recovery when control input stops.
 
@@ -27,7 +27,7 @@ The goal is to show a complete edge-controlled FPV/RC platform: video, control, 
 
 ![FPV Ultimate dashboard](docs/fpv-ultimate-dashboard.jpeg)
 
-The dashboard provides live video controls, gamepad connection state, failsafe status, FPS/ping feedback, camera settings, model profiles, trims, rates, reversing, transmission control, and lights control.
+The dashboard provides live video controls, gamepad connection state, GPS telemetry, failsafe status, FPS/ping feedback, camera settings, model profiles, trims, rates, reversing, transmission control, and lights control.
 
 ## Current Status
 
@@ -39,6 +39,7 @@ The dashboard provides live video controls, gamepad connection state, failsafe s
 | Failsafe | Neutral return when input stops |
 | Settings/models | JSON-backed runtime configuration with atomic writes |
 | Accessories | Transmission and lights PWM outputs |
+| GPS telemetry | Live GPS fix, speed, heading, altitude, and dashboard integration |
 | CI | Python syntax checks, hardware-free unit tests, and browser JavaScript syntax checks |
 | Pi smoke test | `scripts/smoke_test.sh` validates live endpoints on hardware |
 | Known controller issue | DS4Windows/HidHide can interfere with browser gamepad input |
@@ -111,6 +112,20 @@ More detailed architecture diagrams are available in [docs/architecture.md](docs
 - Transmission low/high PWM accessory output
 - Lights on/off PWM accessory output
 - Accessory state exposed through API and dashboard controls
+
+## GPS Telemetry
+
+FPV Ultimate includes live GPS telemetry through USB GNSS receivers connected directly to the Raspberry Pi.
+
+Current functionality includes GPS health monitoring, 2D/3D fix detection, speed telemetry, heading telemetry, altitude telemetry, dashboard GPS status, and gpsd integration.
+
+### GPS API
+
+`GET /gps/status`
+
+The dashboard includes a GPS Telemetry card showing fix status, health, speed, heading, and altitude.
+
+Tested hardware: u-blox 7 USB GPS receiver, GPSD 3.22, Raspberry Pi 4.
 
 ## Hardware Overview
 
@@ -510,7 +525,7 @@ Potential next improvements:
 
 ## Portfolio Summary
 
-FPV Ultimate is a portfolio project demonstrating practical embedded software and edge-control work: browser-based control, live video streaming, Raspberry Pi hardware integration, servo PWM output, deployment automation, safety behavior, and hardware-aware testing.
+FPV Ultimate is a portfolio project demonstrating practical embedded software and edge-control work: browser-based control, live video streaming, GPS telemetry, Raspberry Pi hardware integration, servo PWM output, deployment automation, safety behavior, and hardware-aware testing.
 
 It is relevant to embedded systems, IoT, robotics, edge computing, hardware-adjacent backend development, and real-time control interfaces.
 
