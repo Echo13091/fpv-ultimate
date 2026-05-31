@@ -516,4 +516,4 @@ It is relevant to embedded systems, IoT, robotics, edge computing, hardware-adja
 
 ## License
 
-No license has been selected yet.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
