@@ -12,6 +12,7 @@ let lastSendTime = 0;
 
 let lastPingMs = null;
 let pingTimer = null;
+let gpsTimer = null;
 
 let fpsState = {
     frames: 0,
@@ -296,6 +297,52 @@ function updatePingDisplay() {
 
     if (elFull) {
         elFull.textContent = txt;
+    }
+}
+
+
+// ------------------------------------------------------------
+// GPS telemetry
+// ------------------------------------------------------------
+
+async function updateGpsStatus() {
+    try {
+        const resp = await fetch("/gps/status", { cache: "no-store" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const gps = await resp.json();
+
+        const fix = $("gps-fix");
+        const health = $("gps-health");
+        const speed = $("gps-speed");
+        const heading = $("gps-heading");
+        const altitude = $("gps-altitude");
+
+        if (fix) fix.textContent = gps.fix || "--";
+        if (health) {
+            health.textContent = gps.healthy ? "Healthy" : "Fault";
+            health.style.color = gps.healthy ? "#4caf50" : "#f44336";
+        }
+        if (speed) speed.textContent = gps.speed_mph != null ? `${Number(gps.speed_mph).toFixed(1)} mph` : "--";
+        if (heading) heading.textContent = gps.heading_deg != null ? `${Math.round(Number(gps.heading_deg))}°` : "--";
+        if (altitude) altitude.textContent = gps.altitude_ft != null ? `${Math.round(Number(gps.altitude_ft))} ft` : "--";
+    } catch (err) {
+        console.error("gps error:", err);
+
+        const fix = $("gps-fix");
+        const health = $("gps-health");
+        const speed = $("gps-speed");
+        const heading = $("gps-heading");
+        const altitude = $("gps-altitude");
+
+        if (fix) fix.textContent = "--";
+        if (health) {
+            health.textContent = "Offline";
+            health.style.color = "#f44336";
+        }
+        if (speed) speed.textContent = "--";
+        if (heading) heading.textContent = "--";
+        if (altitude) altitude.textContent = "--";
     }
 }
 
@@ -1082,6 +1129,9 @@ function init() {
 
     doPing();
     pingTimer = setInterval(doPing, 2000);
+
+    updateGpsStatus();
+    gpsTimer = setInterval(updateGpsStatus, 2000);
 }
 
 window.addEventListener("load", init);
