@@ -322,8 +322,12 @@ async function updateGpsStatus() {
 
         if (fix) fix.textContent = gps.fix || "--";
         if (health) {
-            health.textContent = gps.healthy ? "Healthy" : "Fault";
-            health.style.color = gps.healthy ? "#4caf50" : "#f44336";
+            const seen = Number(gps.satellites_seen || 0);
+            const used = Number(gps.satellites_used || 0);
+            const acquiring = !gps.healthy && seen > 0 && used === 0;
+
+            health.textContent = gps.healthy ? "Healthy" : acquiring ? "Acquiring" : "Fault";
+            health.style.color = gps.healthy ? "#4caf50" : acquiring ? "#ff9800" : "#f44336";
         }
         if (speed) speed.textContent = gps.speed_mph != null ? `${Number(gps.speed_mph).toFixed(1)} mph` : "--";
         if (heading) heading.textContent = gps.heading_deg != null ? `${Math.round(Number(gps.heading_deg))}°` : "--";
@@ -450,11 +454,27 @@ function renderGpsMiniMap(points) {
     ctx.arc(first.x, first.y, 3, 0, Math.PI * 2);
     ctx.fill();
 
+    ctx.fillStyle = "rgba(255,255,255,0.70)";
+    ctx.font = "9px system-ui";
+    ctx.fillText("START", Math.min(first.x + 5, w - 42), Math.max(first.y - 5, 10));
+
     const last = toXY(valid[valid.length - 1]);
+    const pulse = 4 + Math.sin(Date.now() / 180) * 1.5;
+
+    ctx.strokeStyle = "rgba(255,152,0,0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, pulse + 4, 0, Math.PI * 2);
+    ctx.stroke();
+
     ctx.fillStyle = "#ff9800";
     ctx.beginPath();
-    ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.arc(last.x, last.y, pulse, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.fillStyle = "rgba(255,152,0,0.95)";
+    ctx.font = "9px system-ui";
+    ctx.fillText("CURRENT", Math.min(last.x + 6, w - 54), Math.max(last.y - 6, 10));
 }
 
 
