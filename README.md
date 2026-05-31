@@ -1,8 +1,27 @@
 # FPV Ultimate
 
-FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform with a browser dashboard, WebRTC video, Picamera2 camera support, GPIOZero servo control, model profiles, accessory outputs, and failsafe behavior.
+FPV Ultimate is a Raspberry Pi based FPV remote-control vehicle platform that combines live browser video, gamepad control, WebRTC streaming, GPIO servo output, model profiles, accessory control, and failsafe behavior into one local-first RC control system.
 
-This is a real hardware project. It is designed around live camera video, browser gamepad input, steering/throttle PWM output, accessory control, and safe recovery when control input stops.
+This is a real hardware project, not a mock dashboard. It is built around live camera video, browser Gamepad API input, steering/throttle PWM output, transmission and light accessories, runtime configuration, and safe recovery when control input stops.
+
+## Why This Project Matters
+
+FPV Ultimate demonstrates practical embedded and edge-system engineering across software, hardware, networking, and controls:
+
+- Raspberry Pi hardware deployment
+- Python Flask backend API
+- WebRTC video signaling and browser video display
+- Picamera2 / libcamera camera integration
+- GPIOZero + pigpio PWM servo control
+- Browser Gamepad API input
+- Threaded control/failsafe runtime
+- JSON-backed runtime settings and model profiles
+- Accessory output control for transmission and lights
+- systemd service deployment on Raspberry Pi OS
+- GitHub Actions CI with hardware-free tests
+- Pi-side smoke testing against live hardware endpoints
+
+The goal is to show a complete edge-controlled FPV/RC platform: video, control, safety, configuration, deployment, testing, and field operation.
 
 ## Dashboard
 
@@ -57,14 +76,14 @@ flowchart LR
     GPIO --> Servos
 ```
 
-More detailed architecture diagrams are in [docs/architecture.md](docs/architecture.md).
+More detailed architecture diagrams are available in [docs/architecture.md](docs/architecture.md).
 
-## Features
+## Core Features
 
 ### Video
 
 - WebRTC browser video stream
-- Raspberry Pi Camera / IMX708 support through Picamera2/libcamera
+- Raspberry Pi Camera / IMX708 support through Picamera2 and libcamera
 - Runtime video resolution, FPS, color-order, and flip settings
 - Fullscreen dashboard video mode
 - Browser-side recording support
@@ -488,6 +507,12 @@ Potential next improvements:
 - Add runtime settings validation and normalization before saving.
 - Convert runtime JSON files into example templates if multiple vehicle profiles are needed.
 - Add a short release checklist for known-good Raspberry Pi builds.
+
+## Portfolio Summary
+
+FPV Ultimate is a portfolio project demonstrating practical embedded software and edge-control work: browser-based control, live video streaming, Raspberry Pi hardware integration, servo PWM output, deployment automation, safety behavior, and hardware-aware testing.
+
+It is relevant to embedded systems, IoT, robotics, edge computing, hardware-adjacent backend development, and real-time control interfaces.
 
 ## License
 
