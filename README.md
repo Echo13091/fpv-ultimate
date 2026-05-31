@@ -63,6 +63,8 @@ flowchart LR
     Browser[Browser Dashboard<br/>Gamepad + WebRTC UI]
     Flask[Flask App<br/>Routes + Signaling]
     Camera[Picamera2 / IMX708]
+    GPS[USB GPS Receiver<br/>gpsd]
+    GPSSvc[GPS Telemetry Service]
     Control[ControlService<br/>Steering + Throttle + Failsafe]
     GPIO[GPIOZero + pigpio]
     Servos[Steering / Throttle / Accessories]
@@ -71,6 +73,8 @@ flowchart LR
     Browser -->|HTTP API| Flask
     Browser -->|WebRTC Offer| Flask
     Flask --> Camera
+    Flask --> GPSSvc
+    GPS --> GPSSvc
     Flask --> Control
     Flask --> Storage
     Control --> GPIO
@@ -145,6 +149,7 @@ Current build target:
 |---|---|
 | Raspberry Pi 4 | Main FPV/control computer |
 | Raspberry Pi Camera / IMX708 | Live video source |
+| USB GPS receiver | GPS telemetry, recovery, and breadcrumb history |
 | GPIOZero + pigpio | Servo PWM control backend |
 | Steering servo | Steering output |
 | ESC/throttle servo signal | Throttle/brake/reverse output |
@@ -166,6 +171,7 @@ Detailed wiring, buck converter, PWM signal, and common-ground instructions are 
 | Lights accessory | GPIO21 | Pin 40 | PWM servo signal | Off/on toggle output |
 | Ground | GND | Pins 6, 9, 14, 20, 25, 30, 34, or 39 | Ground | Must be common with servo/ESC power |
 | Camera | CSI ribbon | Camera connector | CSI camera | Raspberry Pi camera |
+| GPS receiver | USB | USB port | USB CDC ACM / gpsd | Tested as `/dev/ttyACM0` |
 
 Important: do not power multiple servos directly from the Raspberry Pi 5V pin. Use an external BEC or buck converter for servo/accessory power, and tie grounds together.
 
@@ -193,6 +199,7 @@ fpv-ultimate/
 │   ├── accessory_routes.py
 │   ├── control_math.py
 │   ├── control_service.py
+│   ├── gps_service.py
 │   ├── health.py
 │   ├── pages.py
 │   ├── settings_models_routes.py
@@ -224,6 +231,7 @@ fpv-ultimate/
 | `fpv_ultimate/accessory_routes.py` | Accessory API route registration |
 | `fpv_ultimate/control_math.py` | Control smoothing and clamp helpers |
 | `fpv_ultimate/control_service.py` | Steering/throttle output state and failsafe behavior |
+| `fpv_ultimate/gps_service.py` | GPS telemetry, last-known fix, and breadcrumb history through `gpsd` |
 | `fpv_ultimate/health.py` | Health-check response helper |
 | `fpv_ultimate/pages.py` | Dashboard page/template helper |
 | `fpv_ultimate/settings_models_routes.py` | Settings/model API route registration |
@@ -237,6 +245,9 @@ fpv-ultimate/
 |---|---|---|
 | `/` | GET | Main browser dashboard |
 | `/ping` | GET | Health check |
+| `/gps/status` | GET | Read live GPS telemetry and satellite quality |
+| `/gps/last-known` | GET | Read most recent valid GPS fix for recovery use |
+| `/gps/history` | GET | Read rolling in-memory GPS breadcrumb history |
 | `/offer` | POST | WebRTC offer/answer negotiation |
 | `/api/control` | POST | Steering/throttle servo command |
 | `/api/transmission` | POST | Set/toggle transmission accessory |
@@ -322,13 +333,17 @@ sudo apt install -y \
   python3-prctl \
   libcamera-apps \
   pigpio \
-  python3-pigpio
+  python3-pigpio \\
+  gpsd \\
+  gpsd-clients \\
+  python3-gps
 ```
 
 Enable pigpio:
 
 ```bash
 sudo systemctl enable --now pigpiod
+sudo systemctl enable --now gpsd.socket
 ```
 
 Clone and set up the app:
@@ -487,6 +502,7 @@ Start it:
 
 ```bash
 sudo systemctl enable --now pigpiod
+sudo systemctl enable --now gpsd.socket
 ```
 
 ## Development Workflow
@@ -531,6 +547,7 @@ Potential next improvements:
 - Split the large browser client (`static/main.js`) into smaller frontend modules.
 - Add runtime settings validation and normalization before saving.
 - Convert runtime JSON files into example templates if multiple vehicle profiles are needed.
+- Add a privacy-safe GPS map/recovery view using the existing GPS history endpoint.
 - Add a short release checklist for known-good Raspberry Pi builds.
 
 ## Portfolio Summary
