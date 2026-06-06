@@ -383,6 +383,42 @@ async function updateGpsStatus() {
 
 
 
+
+function getMiniMapVisiblePreference() {
+    try {
+        const saved = localStorage.getItem("fpvMiniMapVisible");
+        return saved == null ? true : saved === "1";
+    } catch (err) {
+        return true;
+    }
+}
+
+function setMiniMapVisible(visible) {
+    const overlay = $("gps-mini-map-overlay");
+    const btn = $("btn-toggle-mini-map");
+
+    if (overlay) {
+        overlay.style.display = visible ? "block" : "none";
+    }
+
+    if (btn) {
+        btn.textContent = visible ? "Hide Map" : "Show Map";
+    }
+
+    try {
+        localStorage.setItem("fpvMiniMapVisible", visible ? "1" : "0");
+    } catch (err) {
+        console.warn("Unable to save mini-map preference:", err);
+    }
+}
+
+function toggleMiniMap() {
+    const overlay = $("gps-mini-map-overlay");
+    const currentlyVisible = !overlay || overlay.style.display !== "none";
+    setMiniMapVisible(!currentlyVisible);
+}
+
+
 function renderGpsMiniMap(points) {
     const canvas = $("gps-mini-map");
     if (!canvas) return;
@@ -1224,6 +1260,8 @@ function init() {
     $("btn-disconnect-video").addEventListener("click", stopWebRTC);
     $("btn-fullscreen").addEventListener("click", toggleFullscreen);
     $("btn-record").addEventListener("click", toggleRecording);
+    const miniMapBtn = $("btn-toggle-mini-map");
+    if (miniMapBtn) miniMapBtn.addEventListener("click", toggleMiniMap);
 
     // click on video = exit fullscreen
     if (remoteVideo) {
@@ -1289,6 +1327,7 @@ function init() {
     document.addEventListener("fullscreenchange", onFullscreenChange);
 
     setRecordingIndicator(false);
+    setMiniMapVisible(getMiniMapVisiblePreference());
 
     loadSettings().then(loadModels);
     chooseGamepad();
