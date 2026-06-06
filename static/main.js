@@ -1126,6 +1126,65 @@ async function sendControl(steer, throttle) {
     }
 }
 
+
+// ------------------------------------------------------------
+// Camera focus
+// ------------------------------------------------------------
+async function triggerAutoFocusOnce() {
+    const btn = $("btn-autofocus");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Focusing...";
+    }
+
+    try {
+        const resp = await fetch("/api/camera/autofocus", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+        });
+
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        // Give the backend time to run AF and lock the lens again.
+        setTimeout(async () => {
+            try {
+                const statusResp = await fetch("/api/camera/autofocus", { cache: "no-store" });
+                const status = await statusResp.json();
+
+                if (btn) {
+                    if (status.last_ok) {
+                        const pos = status.last_lens_position != null
+                            ? Number(status.last_lens_position).toFixed(2)
+                            : "--";
+                        btn.textContent = `Focus Locked ${pos}`;
+                    } else if (status.last_error) {
+                        btn.textContent = "Focus Failed";
+                    } else {
+                        btn.textContent = "Auto Focus";
+                    }
+                }
+            } catch (err) {
+                console.error("autofocus status error:", err);
+                if (btn) btn.textContent = "Auto Focus";
+            } finally {
+                if (btn) {
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = "Auto Focus";
+                    }, 1500);
+                }
+            }
+        }, 1800);
+    } catch (err) {
+        console.error("autofocus error:", err);
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Auto Focus";
+        }
+    }
+}
+
 // ------------------------------------------------------------
 // Fullscreen
 // ------------------------------------------------------------
@@ -1260,6 +1319,7 @@ function init() {
     $("btn-disconnect-video").addEventListener("click", stopWebRTC);
     $("btn-fullscreen").addEventListener("click", toggleFullscreen);
     $("btn-record").addEventListener("click", toggleRecording);
+    $("btn-autofocus").addEventListener("click", triggerAutoFocusOnce);
     const miniMapBtn = $("btn-toggle-mini-map");
     if (miniMapBtn) miniMapBtn.addEventListener("click", toggleMiniMap);
 

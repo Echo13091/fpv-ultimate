@@ -145,6 +145,13 @@ control_service = ControlService(
 # ---------------------------------------------------------------------
 picam2 = None
 camera_lock = threading.Lock()
+autofocus_lock = threading.Lock()
+autofocus_state = {
+    "running": False,
+    "last_ok": None,
+    "last_error": None,
+    "last_lens_position": None,
+}
 
 # ---------------------------------------------------------------------
 # Helpers for settings/models
@@ -220,7 +227,7 @@ def configure_camera_from_settings():
         # Enable AF if supported (IMX708)
         try:
             picam2.set_controls({"AfMode": 0, "LensPosition": 0.65})
-            logger.info("IMX708 FPV focus locked: AfMode=0 LensPosition=0.55")
+            logger.info("IMX708 FPV focus locked: AfMode=0 LensPosition=0.65")
         except Exception:
             logger.warning("Autofocus control not supported or failed; continuing.")
 
@@ -325,6 +332,75 @@ def failsafe_worker():
         except Exception as e:
             logger.error("Failsafe error: %s", e)
 
+
+# ---------------------------------------------------------------------
+# IMX708 one-shot autofocus
+# ---------------------------------------------------------------------
+def _run_auto_focus_once():
+    """Run IMX708 autofocus once, then lock lens at the resulting position."""
+    global autofocus_state
+
+    with autofocus_lock:
+        if autofocus_state["running"]:
+            return
+        autofocus_state.update({
+            "running": True,
+            "last_ok": None,
+            "last_error": None,
+        })
+
+    try:
+        with camera_lock:
+            if picam2 is None:
+                raise RuntimeError("camera not initialized")
+
+            # AfMode 1 = auto/single-shot capable, AfTrigger 0 = start.
+            picam2.set_controls({"AfMode": 1, "AfTrigger": 0})
+            logger.info("IMX708 one-shot autofocus started")
+
+        # Give the autofocus scan time to settle without blocking Flask.
+        threading.Event().wait(1.5)
+
+        lens_position = None
+        with camera_lock:
+            if picam2 is None:
+                raise RuntimeError("camera stopped during autofocus")
+
+            try:
+                metadata = picam2.capture_metadata()
+                lens_position = metadata.get("LensPosition")
+            except Exception as e:
+                logger.warning("Could not read autofocus metadata: %s", e)
+
+            if lens_position is None:
+                # Safe fallback: keep the current known FPV locked focus.
+                lens_position = 0.65
+
+            picam2.set_controls({
+                "AfMode": 0,
+                "LensPosition": float(lens_position),
+            })
+
+        with autofocus_lock:
+            autofocus_state.update({
+                "running": False,
+                "last_ok": True,
+                "last_error": None,
+                "last_lens_position": float(lens_position),
+            })
+
+        logger.info("IMX708 autofocus complete; locked LensPosition=%.3f", float(lens_position))
+
+    except Exception as e:
+        logger.error("IMX708 one-shot autofocus failed: %s", e, exc_info=True)
+        with autofocus_lock:
+            autofocus_state.update({
+                "running": False,
+                "last_ok": False,
+                "last_error": str(e),
+            })
+
+
 # ---------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------
@@ -355,6 +431,22 @@ def gps_last_known():
 @app.route("/gps/history")
 def gps_history():
     return jsonify(get_gps_history())
+
+@app.route("/api/camera/autofocus", methods=["POST"])
+def api_camera_autofocus():
+    with autofocus_lock:
+        if autofocus_state["running"]:
+            return jsonify({"ok": True, "running": True, "message": "autofocus already running"})
+
+    threading.Thread(target=_run_auto_focus_once, daemon=True).start()
+    return jsonify({"ok": True, "running": True})
+
+
+@app.route("/api/camera/autofocus", methods=["GET"])
+def api_camera_autofocus_status():
+    with autofocus_lock:
+        return jsonify(dict(autofocus_state))
+
 
 @app.route("/offer", methods=["POST"])
 def offer():
